@@ -23,6 +23,7 @@ import {
   createPublicClient,
   createWalletClient,
   defineChain,
+  encodeDeployData,
   http,
   parseEther,
 } from "viem";
@@ -243,9 +244,17 @@ for (;;) {
     await new Promise((r) => setTimeout(r, 10_000));
   }
 }
+// The raffle constructor takes the token address. Estimating with bare
+// bytecode (no args) REVERTS on this node — proven 21 Nov 2026 by
+// scripts/diag-raffle-estimate.mjs: WITH args lands 2,640,066 gas,
+// WITHOUT args reverts. The token is not deployed yet at this point, so
+// estimate with the operator's own address as a placeholder token — the
+// creation gas is the same for any non-zero 20-byte address (one SSTORE
+// of a non-zero word), and the real deploy below uses the real token
+// address. This keeps the pre-deploy budget check intact.
 const raffleGasEst = await publicClient.estimateGas({
   account,
-  data: raffleArtifact.bytecode,
+  data: encodeDeployData({ abi: raffleArtifact.abi, bytecode: raffleArtifact.bytecode, args: [account.address] }),
 });
 
 // Fee terms (read live) + window budget check BEFORE the first deploy.
