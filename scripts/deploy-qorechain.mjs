@@ -48,6 +48,7 @@ const MEMO_TAG = "BANZAI VEGAS";
 const MSG_SEND_TYPE_URL = "/cosmos.bank.v1beta1.MsgSend";
 const WINDOW = { blocks: 600, maxTxs: 10, maxValueQor: "2" };
 const FORCE = process.argv.includes("--force");
+const EVM_ONLY = process.argv.includes("--evm-only");
 
 const qoreEvmChain = defineChain({
   id: EVM_CHAIN_ID,
@@ -125,52 +126,83 @@ console.log(`PQC key registered (algorithm ${pqc.algorithmId ?? "?"}).`);
 
 // Hybrid eth-native client: every native tx from here is secp256k1 +
 // ML-DSA-87. Each broadcast() simulates first and aborts on a failed sim.
-const eth = makeEthClient(unified, { signMode: "hybrid" });
+// In --evm-only mode no native tx is sent at all (see the lag note in
+// step 2), so no client is created.
+const eth = EVM_ONLY ? null : makeEthClient(unified, { signMode: "hybrid" });
 
-// --- 1. Hybrid-signed proof tx: 0.001 QOR to self ------------------------
-console.log("\n[1/4] Hybrid-signed proof tx (0.001 QOR to self)...");
-const proofMsg = {
-  typeUrl: MSG_SEND_TYPE_URL,
-  value: {
-    fromAddress: operator,
-    toAddress: operator,
-    amount: [{ denom: "uqor", amount: qorToUqor("0.001") }],
-  },
-};
-let proof;
-try {
-  proof = await eth.broadcast([proofMsg], `${MEMO_TAG} hybrid proof`);
-} catch (err) {
-  fail(`Hybrid proof tx failed (no tx sent): ${err instanceof Error ? err.message : String(err)}`);
+let proof = null;
+let open = null;
+if (!EVM_ONLY) {
+  // --- 1. Hybrid-signed proof tx: 0.001 QOR to self ------------------------
+  console.log("\n[1/4] Hybrid-signed proof tx (0.001 QOR to self)...");
+  const proofMsg = {
+    typeUrl: MSG_SEND_TYPE_URL,
+    value: {
+      fromAddress: operator,
+      toAddress: operator,
+      amount: [{ denom: "uqor", amount: qorToUqor("0.001") }],
+    },
+  };
+  try {
+    proof = await eth.broadcast([proofMsg], `${MEMO_TAG} hybrid proof`);
+  } catch (err) {
+    fail(`Hybrid proof tx failed (no tx sent): ${err instanceof Error ? err.message : String(err)}`);
+  }
+  if (proof.code !== 0) fail(`Hybrid proof tx returned code ${proof.code}.`);
+  console.log(`  proof tx: ${proof.transactionHash}`);
+  console.log(`  explorer: ${explorerTxUrl(proof.transactionHash)}`);
+} else {
+  console.log("\n[evm-only] No native txs in this run — EVM steps only, against the already-live window.");
 }
-if (proof.code !== 0) fail(`Hybrid proof tx returned code ${proof.code}.`);
-console.log(`  proof tx: ${proof.transactionHash}`);
-console.log(`  explorer: ${explorerTxUrl(proof.transactionHash)}`);
 
-// --- 2. Open the EVM window (hybrid-signed) ------------------------------
-console.log(`\n[2/4] Opening EVM window (${WINDOW.blocks} blocks / ${WINDOW.maxTxs} txs / ${WINDOW.maxValueQor} QOR max)...`);
-const windowMsg = openEvmWindowMsg({
-  sender: operator,
-  blocks: WINDOW.blocks,
-  maxTxs: WINDOW.maxTxs,
-  maxValue: qorToUqor(WINDOW.maxValueQor),
-});
-let open;
-try {
-  open = await eth.broadcast([windowMsg], `${MEMO_TAG} open EVM window`);
-} catch (err) {
-  fail(`Window-open failed (no tx sent): ${err instanceof Error ? err.message : String(err)}`);
+// --- 2. EVM window ---------------------------------------------------------
+// LESSON (verified 21 Nov ~14:00-14:24 WIB, 4 failed runs): a native tx
+// from the operator in the SAME run breaks EVM contract-creation
+// estimation for the window. Run 5 reused the exact aged window a
+// standalone diagnostic had just estimated fine against — and still
+// reverted for 15 straight minutes, because the run had sent its proof tx
+// first. The window itself was fine; the native tx in the same run was
+// the poison. So the deploy is TWO PHASES: (1) open the window in one
+// run, (2) deploy in a LATER run with --evm-only and NO native txs.
+// Reuse an already-aged live window whenever one covers this deploy.
+if (!EVM_ONLY) {
+  const existing = await getEvmWindow(operator);
+  const reusable =
+    existing.found && existing.live &&
+    BigInt(existing.remainingValue ?? 0) >= qorToUqor(WINDOW.maxValueQor) &&
+    Number(existing.remainingTxs ?? 0) >= 3 &&
+    Number(existing.remainingBlocks ?? 0) >= 50;
+  if (reusable) {
+    console.log(`\n[2/4] Reusing live EVM window (opened at height ${existing.openedHeight}, ${existing.remainingBlocks} blocks / ${existing.remainingTxs} txs / ${uqorToQor(existing.remainingValue)} QOR left) — already aged in, no new window needed.`);
+  } else {
+    console.log(`\n[2/4] Opening EVM window (${WINDOW.blocks} blocks / ${WINDOW.maxTxs} txs / ${WINDOW.maxValueQor} QOR max)...`);
+    const windowMsg = openEvmWindowMsg({
+      sender: operator,
+      blocks: WINDOW.blocks,
+      maxTxs: WINDOW.maxTxs,
+      maxValue: qorToUqor(WINDOW.maxValueQor),
+    });
+    try {
+      open = await eth.broadcast([windowMsg], `${MEMO_TAG} open EVM window`);
+    } catch (err) {
+      fail(`Window-open failed (no tx sent): ${err instanceof Error ? err.message : String(err)}`);
+    }
+    if (open.code !== 0) fail(`Window-open tx returned code ${open.code}.`);
+    console.log(`  window-open tx: ${open.transactionHash}`);
+    console.log(`  explorer: ${explorerTxUrl(open.transactionHash)}`);
+  }
 }
-if (open.code !== 0) fail(`Window-open tx returned code ${open.code}.`);
-console.log(`  window-open tx: ${open.transactionHash}`);
-console.log(`  explorer: ${explorerTxUrl(open.transactionHash)}`);
 
 const window = await getEvmWindow(operator);
 if (!window.found || !window.live) {
-  fail("Window-open tx landed but the window is not live — no EVM tx sent.");
+  fail(
+    EVM_ONLY
+      ? "No live EVM window — open one first (full deploy or scripts/open-window.mjs), wait ~8 min for it to age in, then re-run with --evm-only."
+      : "Window-open tx landed but the window is not live — no EVM tx sent.",
+  );
 }
 console.log(`  window live: ${window.remainingValue ? uqorToQor(window.remainingValue) + " QOR remaining" : "live"}`);
-await eth.disconnect();
+if (eth) await eth.disconnect();
 
 // --- 3. Deploy the contracts via viem (inside the window) ---------------
 console.log("\n[3/4] Deploying contracts via viem (inside the window)...");
@@ -185,6 +217,37 @@ const publicClient = createPublicClient({
   transport: http(EVM_RPC_URL),
 });
 
+// Safety net: if estimation still reverts (e.g. a fresh window that has
+// not aged in yet), retry for up to 15 min instead of failing at once.
+// In --evm-only mode against an aged window it should land on attempt 1.
+// NOTE: artifacts MUST load before this loop — it references
+// tokenArtifact/raffleArtifact, and a const declared below would throw a
+// ReferenceError (TDZ) on every attempt, misreported as a revert.
+const tokenArtifact = loadArtifact("BanzaiToken");
+const raffleArtifact = loadArtifact("BanzaiRaffle");
+let tokenGasEst;
+const estDeadline = Date.now() + 900_000;
+let estAttempt = 0;
+for (;;) {
+  estAttempt++;
+  try {
+    tokenGasEst = await publicClient.estimateGas({
+      account,
+      data: tokenArtifact.bytecode,
+    });
+    console.log(`  token gas estimate landed on attempt ${estAttempt}: ${tokenGasEst}`);
+    break;
+  } catch (err) {
+    if (Date.now() > estDeadline) throw err;
+    console.log(`  token estimate reverted (attempt ${estAttempt}) — window still propagating, retrying in 10s...`);
+    await new Promise((r) => setTimeout(r, 10_000));
+  }
+}
+const raffleGasEst = await publicClient.estimateGas({
+  account,
+  data: raffleArtifact.bytecode,
+});
+
 // Fee terms (read live) + window budget check BEFORE the first deploy.
 let maxFeePerGas;
 let maxPriorityFeePerGas;
@@ -196,19 +259,9 @@ try {
   maxFeePerGas = await publicClient.getGasPrice();
   maxPriorityFeePerGas = undefined;
 }
-const tokenArtifact = loadArtifact("BanzaiToken");
-const raffleArtifact = loadArtifact("BanzaiRaffle");
 
 // Upper-bound the three EVM txs' max fees (deploys + startRaffle) against
 // the window's remaining value, rounding up (1 uqor = 10^12 wei).
-const tokenGasEst = await publicClient.estimateGas({
-  account,
-  data: tokenArtifact.bytecode,
-});
-const raffleGasEst = await publicClient.estimateGas({
-  account,
-  data: raffleArtifact.bytecode,
-});
 const startGasEst = 200_000n; // startRaffle is a simple SSTORE call; capped estimate
 const totalGasEst = tokenGasEst + raffleGasEst + startGasEst;
 const maxFeesWei = totalGasEst * maxFeePerGas;
@@ -279,8 +332,8 @@ const out = {
   operatorQor1: operator,
   deployedAt: new Date().toISOString(),
   txs: {
-    hybridProof: proof.transactionHash,
-    windowOpen: open.transactionHash,
+    hybridProof: proof ? proof.transactionHash : "skipped (evm-only run — hybrid txs already on chain: PQC registration + earlier proof txs)",
+    windowOpen: open ? open.transactionHash : "reused-live-window",
     tokenDeploy: tokenHash,
     raffleDeploy: raffleHash,
     startRaffle: startHash,
