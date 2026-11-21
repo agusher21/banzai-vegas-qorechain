@@ -1,21 +1,29 @@
 {
-  "network": "qorechain",
   "chainId": 9800,
-  "token": "0x3d1c5dad2b1a11b7dda71365fdc2e66a97ce1a5d",
-  "raffle": "0x2457ba1f2acdfd7015ceeb4c350b237cea5e3178",
-  "raffleId": 1,
-  "drawTime": "2026-11-22T20:00:00.000Z",
-  "drawTimeUnix": 1795377600,
-  "ticketPriceBNZ": "5",
-  "maxTicketsPerPlayer": 20,
   "deployer": "0xb66DFD01Fc5eEC24f7d59c730ECA541addcbd110",
+  "drawTime": null,
+  "drawTimeUnix": null,
+  "maxTicketsPerPlayer": 20,
+  "network": "qorechain",
   "operatorQor1": "qor1kekl6q0utmkzfa74n3esajj5rtwuh5gsdh4gvh",
-  "deployedAt": "2026-11-21T08:03:10.522Z",
-  "txs": {
-    "hybridProof": "skipped (evm-only run — hybrid txs already on chain: PQC registration + earlier proof txs)",
-    "windowOpen": "reused-live-window",
-    "tokenDeploy": "0x8409dea54c33a0e8381502db7fbfb059b89dde343721cb5c2d01260c704e28ae",
-    "raffleDeploy": "0x1c026d8dd3e551c9397bfa6822d77f694fef44c106b856dbbd1f001b63f3430a",
-    "startRaffle": "0x63f3581b7847bf6941d799b014abe52c9051edecfb18d0773faa4a3c57a32882"
-  }
+  "previousDeployment": {
+    "deployedAt": "2026-11-21T08:03:10.522Z",
+    "drawTime": "2026-11-22T20:00:00.000Z",
+    "drawTimeUnix": 1795377600,
+    "raffle": "0x2457ba1f2acdfd7015ceeb4c350b237cea5e3178",
+    "raffleId": 1,
+    "ticketPriceBNZ": "5",
+    "token": "0x3d1c5dad2b1a11b7dda71365fdc2e66a97ce1a5d",
+    "txs": {
+      "raffleDeploy": "0x1c026d8dd3e551c9397bfa6822d77f694fef44c106b856dbbd1f001b63f3430a",
+      "startRaffle": "0x63f3581b7847bf6941d799b014abe52c9051edecfb18d0773faa4a3c57a32882",
+      "tokenDeploy": "0x8409dea54c33a0e8381502db7fbfb059b89dde343721cb5c2d01260c704e28ae"
+    }
+  },
+  "raffle": "0x0000000000000000000000000000000000000000",
+  "raffleId": 0,
+  "retired": true,
+  "retiredNote": "BNZ version retired 21 Nov 2026 \u2014 the raffle is QOR-native now (tickets + payouts in native QOR). QOR redeploy pending Toni's correction. Old addresses below are abandoned, kept for history.",
+  "ticketPriceQOR": "5",
+  "token": null
 }

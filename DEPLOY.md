@@ -49,9 +49,10 @@ simulation sends nothing):
 2. Opens a scoped EVM window (600 blocks / 10 txs / 2 QOR max) with a
    hybrid-signed `MsgOpenEVMWindow`, then verifies it is live. Opening the
    window advances the EVM nonce — the EVM txs are signed after this.
-3. Deploys `BanzaiToken` + `BanzaiRaffle` via viem, inside the window. Their
-   max fees are checked against the window's remaining value BEFORE the first
-   deploy — if they don't fit, it aborts with no EVM tx sent.
+3. Deploys `BanzaiRaffle` (QOR-native, no constructor args, no token) via
+   viem, inside the window. Its max fees are checked against the window's
+   remaining value BEFORE the deploy — if they don't fit, it aborts with no
+   EVM tx sent.
 4. Starts raffle #1 (draw = next Sun/Tue/Thu 20:00 UTC).
 
 Outputs:
@@ -60,18 +61,19 @@ Outputs:
 - `deployment.json` — receipt with every tx hash + explorer link (gitignored;
   keep it private-ish: it holds no secrets, only public hashes).
 
-### Gas (measured on the Base Sepolia version's local runs; QoreChain EVM will differ slightly)
+### Gas (measured on the BNZ version's local runs; the QOR raffle has no token deploy and no constructor args, so it is cheaper)
 
 | Step | Gas (local estimate) |
 |---|---|
-| Deploy BanzaiToken | ~1,155,590 |
-| Deploy BanzaiRaffle | ~2,613,053 |
+| Deploy BanzaiRaffle | ~2,400,000 (was ~2,613,053 with the token-arg constructor) |
 | startRaffle | ~81,417 |
-| Full round end-to-end | ~4,966,500 |
+| Full deploy end-to-end | ~2,500,000 |
 
 At QoreChain EVM gas prices this is well under 1 QOR for the whole deploy;
 the 100 QOR faucet claim covers it many times over. Exact QOR spent is in
 `deployment.json` after a real deploy.
+
+> **Retired BNZ deploy (21 Nov 2026, abandoned):** token 0x3d1c5dad2b1a11b7dda71365fdc2e66a97ce1a5d + raffle 0x2457ba1f2acdfd7015ceeb4c350b237cea5e3178, raffle #1 started, draw Sun 22 Nov 20:00 UTC, pot 0, no tickets sold. Do not redeploy over it without `--force`; the QOR redeploy replaces it entirely.
 
 ### Re-deploy
 
@@ -79,25 +81,30 @@ the 100 QOR faucet claim covers it many times over. Exact QOR spent is in
 already holds real QoreChain addresses. Re-run with `--force` to redeploy
 (the old addresses are then abandoned).
 
-## 5. Frontend (Vercel)
+## 5. Frontend (GitHub Pages)
 
-The frontend is a static site (`frontend/`, no build step).
+The frontend is a static site (`frontend/`, no build step), live at
+https://agusher21.github.io/banzai-vegas-qorechain/ via the `gh-pages`
+branch (frontend files at root). Publish with a worktree:
 
-**Known blocker:** the Muse Vercel connection gets **403 — not authorized
-for scope `tonibanzais-projects`** on `create_git_project`, and there are no
-stored Vercel credentials on this VM (`~/.vercel` does not exist). Do not
-fight the 403 — import the repo in the Vercel dashboard instead:
+```bash
+git fetch origin
+git worktree add /tmp/bv-pages gh-pages
+cp frontend/* /tmp/bv-pages/
+cd /tmp/bv-pages && git add -A && git commit -m "Publish QOR frontend" && git push origin gh-pages
+git worktree remove /tmp/bv-pages
+```
 
-1. Vercel dashboard → Add New → Project → import `agusher21/banzai-vegas-qorechain`.
-2. Root Directory: `frontend`. Framework: Other / static. No build command, no output directory change.
-3. Deploy.
+Until the QOR raffle is deployed, the frontend shows "NOT DEPLOYED YET".
+Once `deployed-addresses.json` holds the real QOR raffle address (written
+by the deploy script, committed + pushed), the frontend reads the chain
+live. The BNZ version was retired 21 Nov 2026 — the live site currently
+shows NOT DEPLOYED YET until the QOR redeploy lands.
 
-Until the contracts are deployed, the frontend shows "NOT DEPLOYED YET". Once
-`deployed-addresses.json` holds the real addresses (written by the deploy
-script, committed + pushed), the frontend reads the chain live.
+(Vercel import is no longer needed — GitHub Pages is the live demo URL.)
 
 ## 6. Fest "Create project" form
 
 The form does NOT save drafts — fill every field in one session. All fields
-are prepared in `FEST_FIELDS.md`. The video (≤3 min) and the Vercel import
-are still Toni's steps.
+are prepared in `FEST_FIELDS.md`. The demo video (≤3 min) is STALE — it shows
+the BNZ version; re-record it after the QOR redeploy, then fill the form.

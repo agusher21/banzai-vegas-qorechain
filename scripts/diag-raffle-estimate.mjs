@@ -1,3 +1,7 @@
+// RETIRED 21 Nov 2026 — historical diagnostic for the BNZ version only.
+// The QOR-native BanzaiRaffle has NO constructor args, so bare-bytecode
+// estimation works and this diagnostic is obsolete. Kept for the record of
+// what the BNZ deploy taught us; do not run it against the new contract.
 // DIAGNOSTIC (read-only, no tx sent): does the BanzaiRaffle creation
 // estimate revert because the constructor arg (token address) is missing
 // from the estimate data?

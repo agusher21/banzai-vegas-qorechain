@@ -1,16 +1,17 @@
 # BANZAI VEGAS — on-chain raffle on QoreChain testnet
 
-**Post-quantum dApp for the QoreChain Developer Fest 'Build Before Q-Day'.** Buy BNZ raffle tickets on the QoreChain testnet (qorechain-diana, EVM chain 9800), win the pot. Draws every Sunday, Tuesday and Thursday at 20:00 UTC. Testnet only — no real money.
+**Post-quantum dApp for the QoreChain Developer Fest 'Build Before Q-Day'.** Buy raffle tickets with native QOR on the QoreChain testnet (qorechain-diana, EVM chain 9800), win the pot. Draws every Sunday, Tuesday and Thursday at 20:00 UTC. Testnet only — no real money.
 
 > This is the QoreChain port of BANZAI VEGAS. The earlier Base Sepolia version (repo `agusher21/banzai-vegas`) was abandoned by the owner's word — this repo is the one that counts.
+>
+> **21 Nov 2026: the raffle went QOR-native.** Tickets AND payouts are paid in native QOR (5 QOR/ticket) — no play token. The BNZ token (`BanzaiToken`) was retired; its contract file stays in the repo marked retired, and the deployed BNZ raffle (0x2457…) is abandoned. A QOR redeploy is pending the owner's correction.
 
 ## How it works
 
-1. **Get QOR for gas** from the [QoreChain faucet](https://dashboard.qorechain.io/faucet) (100 QOR per claim, 1×/24h per address).
-2. **Claim free BNZ** from the in-app faucet (1,000 BNZ, once a day, testnet only).
-3. **Buy tickets** — 5 BNZ each, up to 20 per raffle. Sales close at draw time.
-4. **Draw** — after sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable on-chain. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 BNZ plus one lot of the remainder.
-5. **Claim** your prize from "My wins". Prizes never expire.
+1. **Get QOR** from the [QoreChain faucet](https://dashboard.qorechain.io/faucet) (100 QOR per claim, 1×/24h per address) — QOR pays for gas AND for tickets.
+2. **Buy tickets** — 5 QOR each, up to 20 per raffle. Sales close at draw time. After you buy, your ticket card flips in with your draw numbers.
+3. **Draw** — after sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable on-chain. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.
+4. **Claim** your prize from "My wins" — it pays out in QOR. Prizes never expire.
 
 ## Post-quantum, for real
 
@@ -25,8 +26,8 @@ See `scripts/` for the operator flow (setup → register → deploy) and `DEPLOY
 
 ## Contracts (QoreChain testnet, EVM 9800)
 
-- `BanzaiToken` (BNZ) — ERC-20 play token + faucet (1,000 BNZ / address / 24h, 100M cap, no owner mint).
-- `BanzaiRaffle` — buy (5 BNZ/ticket, max 20/player/round) / draw / finalize / claim / rollover. Only `startRaffle` is owner-only; no owner withdrawal, no owner-picks-winner.
+- `BanzaiRaffle` — QOR-native: buy (5 QOR/ticket, max 20/player/round, payable, exact value) / draw / finalize / claim (pays QOR) / rollover. Only `startRaffle` is owner-only; no owner withdrawal, no owner-picks-winner. Accepts plain QOR transfers (rollover seed).
+- `BanzaiToken` (BNZ) — **RETIRED 21 Nov 2026.** Kept in `contracts/` for history only; nothing references it. Deployed token 0x3d1c… is abandoned with the BNZ raffle.
 
 Randomness is a two-step future-blockhash draw (public, verifiable; 256-block finalize window with re-draw rescue). It is fair for a testnet game, not for high-value production — the named upgrade is Chainlink VRF where available on the target chain.
 
@@ -48,10 +49,10 @@ Live demo: see the repo's Vercel deployment (Root Directory `frontend`, static s
 ```bash
 npm install
 npx hardhat compile
-npx hardhat test          # 20 tests — contracts, draw/finalize, claims, rollover
+npx hardhat test          # 20 tests — QOR-native buying, draw/finalize, claims, rollover, accounting
 node scripts/setup-operator.mjs     # once: fresh testnet-only operator account
 node scripts/register-operator.mjs  # once, after funding it from the faucet
-node scripts/deploy-qorechain.mjs   # deploy + start raffle #1
+node scripts/deploy-qorechain.mjs   # deploy the QOR raffle + start raffle #1
 ```
 
 ## QoreChain kit

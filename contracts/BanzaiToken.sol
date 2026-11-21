@@ -3,9 +3,13 @@ pragma solidity ^0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/// @title Banzai Token (BNZ) — testnet play token for BANZAI VEGAS
-/// @notice Testnet ONLY. No real value. Anyone can claim a capped amount from
-/// the faucet so they can play the raffle. There is no owner mint.
+/// @title Banzai Token (BNZ) — RETIRED 21 Nov 2026, do not use.
+/// @notice The raffle now takes native QOR for tickets AND payouts, so no
+/// play token is needed. This contract is kept in the repo for history only:
+/// the token deployed at 0x3d1c5dad2b1a11b7dda71365fdc2e66a97ce1a5d (QoreChain
+/// testnet) is abandoned with the BNZ raffle. It still compiles, but nothing
+/// in the raffle, the frontend or the deploy script references it anymore.
+/// @notice Testnet ONLY. No real value.
 contract BanzaiToken is ERC20 {
     uint256 public constant FAUCET_AMOUNT = 1_000 ether; // 1,000 BNZ per claim
     uint256 public constant FAUCET_COOLDOWN = 1 days;

@@ -1,24 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title BanzaiRaffle — on-chain raffle, ASE Vegas formula, QoreChain testnet (qorechain-diana, EVM 9800)
 /// @notice Testnet ONLY. No real value anywhere in this contract.
 ///
+/// Tickets AND prizes are paid in native QOR (the QoreChain testnet token),
+/// so anyone with faucet QOR can play — no play token needed.
+///
 /// MECHANICS (mirrors the ASE Vegas raffle in the reference screenshot):
-///  - Ticket price: 5 BNZ. Max 20 tickets per player per raffle.
+///  - Ticket price: 5 QOR. Max 20 tickets per player per raffle.
 ///  - Sales close at drawTime (draws run Sunday / Tuesday / Thursday 20:00 UTC;
 ///    the weekday is a convention of the operator, not enforced on-chain).
-///  - Pot = all BNZ collected in the round, plus any rollover from unallocated
+///  - Pot = all QOR collected in the round, plus any rollover from unallocated
 ///    prizes of earlier rounds.
 ///  - Prizes, computed from the pot at finalize time:
 ///      1st 30%, 2nd 18%, 3rd 12%,
-///      then up to 29 lucky lots of exactly 100 BNZ,
+///      then up to 29 lucky lots of exactly 100 QOR,
 ///      then ONE lucky lot of whatever remains.
-///    Example: pot 7,276 BNZ -> 1st 2,182.80, 2nd 1,309.68, 3rd 873.12,
-///    29 x 100 BNZ, remainder lot 10.40 BNZ (exactly the ASE #12 shape).
+///    Example: pot 7,276 QOR -> 1st 2,182.80, 2nd 1,309.68, 3rd 873.12,
+///    29 x 100 QOR, remainder lot 10.40 QOR (exactly the ASE #12 shape).
 ///  - Prizes NEVER expire. Winners claim any time via claim().
 ///  - Any prize slot that has no ticket to pay (too few tickets sold) is
 ///    simply not paid; its amount stays in the contract and rolls into the
@@ -42,12 +44,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 ///  - The only owner-only function is startRaffle(). There is no owner
 ///    withdrawal and no way for anyone to choose winners.
 contract BanzaiRaffle is ReentrancyGuard {
-    IERC20 public immutable token;
     address public immutable owner;
 
-    uint256 public constant TICKET_PRICE = 5 ether; // 5 BNZ
+    uint256 public constant TICKET_PRICE = 5 ether; // 5 QOR
     uint256 public constant MAX_TICKETS_PER_PLAYER = 20;
-    uint256 public constant LUCKY_LOT = 100 ether; // 100 BNZ
+    uint256 public constant LUCKY_LOT = 100 ether; // 100 QOR
     uint256 public constant MAX_LUCKY_LOTS = 29;
     uint256 public constant FIRST_PCT = 30;
     uint256 public constant SECOND_PCT = 18;
@@ -82,7 +83,7 @@ contract BanzaiRaffle is ReentrancyGuard {
     // round -> player -> ticket ids
     mapping(uint256 => mapping(address => uint256[])) public playerTickets;
     mapping(uint256 => Winner[]) public winners;
-    // BNZ currently owed to winners across all rounds (unclaimed prizes)
+    // QOR currently owed to winners across all rounds (unclaimed prizes)
     uint256 public totalUnclaimed;
 
     event RaffleStarted(uint256 indexed raffleId, uint256 drawTime, uint256 rollover);
@@ -102,12 +103,16 @@ contract BanzaiRaffle is ReentrancyGuard {
         _;
     }
 
-    constructor(address tokenAddress) {
-        token = IERC20(tokenAddress);
+    constructor() {
         owner = msg.sender;
     }
 
-    /// @notice Open a new round. drawTime must be in the future. Any BNZ left
+    /// @notice Accept plain QOR transfers (e.g. a manual rollover seed).
+    /// Plain transfers are NOT ticket purchases — they just sit in the
+    /// contract balance and roll into the next round's pot.
+    receive() external payable {}
+
+    /// @notice Open a new round. drawTime must be in the future. Any QOR left
     /// in the contract that is not owed to winners rolls into the new pot.
     function startRaffle(uint256 drawTime) external onlyOwner {
         if (drawTime <= block.timestamp) revert InvalidDrawTime();
@@ -117,7 +122,7 @@ contract BanzaiRaffle is ReentrancyGuard {
                 "BanzaiRaffle: previous round not finalized"
             );
         }
-        uint256 rollover = token.balanceOf(address(this)) - totalUnclaimed;
+        uint256 rollover = address(this).balance - totalUnclaimed;
         currentRaffleId += 1;
         Raffle storage r = raffles[currentRaffleId];
         r.drawTime = drawTime;
@@ -126,9 +131,9 @@ contract BanzaiRaffle is ReentrancyGuard {
         emit RaffleStarted(currentRaffleId, drawTime, rollover);
     }
 
-    /// @notice Buy `count` tickets in the current round. Caller must have
-    /// approved the raffle to spend count * TICKET_PRICE BNZ first.
-    function buyTickets(uint256 count) external nonReentrant {
+    /// @notice Buy `count` tickets in the current round. Send exactly
+    /// count * TICKET_PRICE QOR with the call — no approval, no token.
+    function buyTickets(uint256 count) external payable nonReentrant {
         Raffle storage r = raffles[currentRaffleId];
         if (r.state != State.OPEN) revert NotOpen();
         require(block.timestamp < r.drawTime, "BanzaiRaffle: sales closed");
@@ -139,6 +144,7 @@ contract BanzaiRaffle is ReentrancyGuard {
             "BanzaiRaffle: max 20 tickets per player"
         );
         uint256 cost = count * TICKET_PRICE;
+        require(msg.value == cost, "BanzaiRaffle: send exactly count * 5 QOR");
         uint256 firstTicketId = r.totalTickets + 1;
         if (already == 0) r.playerCount += 1;
         for (uint256 i = 0; i < count; i++) {
@@ -148,10 +154,6 @@ contract BanzaiRaffle is ReentrancyGuard {
             r.totalTickets += 1;
         }
         r.pot += cost;
-        require(
-            token.transferFrom(msg.sender, address(this), cost),
-            "BanzaiRaffle: BNZ transfer failed"
-        );
         emit TicketsBought(currentRaffleId, msg.sender, count, firstTicketId);
     }
 
@@ -228,6 +230,7 @@ contract BanzaiRaffle is ReentrancyGuard {
 
     /// @notice Claim ALL of the caller's unclaimed prizes in a round.
     /// Prizes never expire — there is no deadline on this call.
+    /// Pays out in native QOR.
     function claim(uint256 raffleId) external nonReentrant {
         uint256 amount = 0;
         Winner[] storage ws = winners[raffleId];
@@ -239,7 +242,8 @@ contract BanzaiRaffle is ReentrancyGuard {
         }
         if (amount == 0) revert NothingToClaim();
         totalUnclaimed -= amount;
-        require(token.transfer(msg.sender, amount), "BanzaiRaffle: payout failed");
+        (bool ok, ) = msg.sender.call{value: amount}("");
+        require(ok, "BanzaiRaffle: QOR payout failed");
         emit Claimed(raffleId, msg.sender, amount);
     }
 

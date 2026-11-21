@@ -1,5 +1,8 @@
-// BANZAI VEGAS (QoreChain) — deploy the raffle on qorechain-diana (EVM 9800).
+// BANZAI VEGAS (QoreChain) — deploy the QOR-native raffle on qorechain-diana (EVM 9800).
 //   node scripts/deploy-qorechain.mjs [--force]
+// The raffle takes native QOR for tickets AND payouts — there is no play
+// token anymore (BanzaiToken was retired 21 Nov 2026). Only one contract
+// is deployed: BanzaiRaffle (no constructor args).
 // Flow (Sentinel pattern, proven 16 Nov 2026):
 //   1. Preflight: operator funded + PQC key registered (else fail cleanly).
 //   2. A hybrid-signed native tx (0.001 QOR to self) — the explicit
@@ -8,14 +11,14 @@
 //   3. Open a scoped EVM window (600 blocks / 10 txs / 2 QOR max) with a
 //      hybrid-signed MsgOpenEVMWindow, then verify it is live. Opening the
 //      window advances the EVM nonce — the EVM txs are signed after this.
-//   4. Deploy BanzaiToken + BanzaiRaffle via viem (compiled artifacts from
+//   4. Deploy BanzaiRaffle via viem (compiled artifact from
 //      `npx hardhat compile`), then start raffle #1 (draw = next Sun/Tue/Thu
-//      20:00 UTC). All three EVM txs run inside the window; their max fees
+//      20:00 UTC). Both EVM txs run inside the window; their max fees
 //      are checked against the window's remaining value BEFORE the first one.
 //   5. Write frontend/deployed-addresses.json + deployment.json (receipt
 //      with every tx hash + explorer link).
-// Refuses to redeploy when deployed-addresses.json already holds real
-// QoreChain addresses, unless --force is passed.
+// Refuses to redeploy when deployed-addresses.json already holds a real
+// QoreChain raffle address, unless --force is passed.
 // The operator key comes from .env.local only and is never printed.
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { openEvmWindowMsg } from "@qorechain/sdk";
@@ -23,9 +26,7 @@ import {
   createPublicClient,
   createWalletClient,
   defineChain,
-  encodeDeployData,
   http,
-  parseEther,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
@@ -91,11 +92,11 @@ const deployedPath = new URL("../frontend/deployed-addresses.json", import.meta.
 if (!FORCE && existsSync(deployedPath)) {
   try {
     const prev = JSON.parse(readFileSync(deployedPath, "utf8"));
-    if (prev.chainId === EVM_CHAIN_ID && prev.token && prev.raffle &&
-        !prev.token.startsWith("0x00000000") && !prev.raffle.startsWith("0x00000000")) {
+    if (prev.chainId === EVM_CHAIN_ID && prev.raffle && !prev.retired &&
+        !prev.raffle.startsWith("0x00000000")) {
       fail(
-        `Already deployed on QoreChain (token ${prev.token}, raffle ${prev.raffle}). ` +
-        `Re-run with --force to redeploy (old addresses are then abandoned).`,
+        `Already deployed on QoreChain (raffle ${prev.raffle}). ` +
+        `Re-run with --force to redeploy (the old address is then abandoned).`,
       );
     }
   } catch (e) {
@@ -171,7 +172,7 @@ if (!EVM_ONLY) {
   const reusable =
     existing.found && existing.live &&
     BigInt(existing.remainingValue ?? 0) >= qorToUqor(WINDOW.maxValueQor) &&
-    Number(existing.remainingTxs ?? 0) >= 3 &&
+    Number(existing.remainingTxs ?? 0) >= 2 &&
     Number(existing.remainingBlocks ?? 0) >= 50;
   if (reusable) {
     console.log(`\n[2/4] Reusing live EVM window (opened at height ${existing.openedHeight}, ${existing.remainingBlocks} blocks / ${existing.remainingTxs} txs / ${uqorToQor(existing.remainingValue)} QOR left) — already aged in, no new window needed.`);
@@ -205,8 +206,8 @@ if (!window.found || !window.live) {
 console.log(`  window live: ${window.remainingValue ? uqorToQor(window.remainingValue) + " QOR remaining" : "live"}`);
 if (eth) await eth.disconnect();
 
-// --- 3. Deploy the contracts via viem (inside the window) ---------------
-console.log("\n[3/4] Deploying contracts via viem (inside the window)...");
+// --- 3. Deploy the raffle via viem (inside the window) --------------------
+console.log("\n[3/4] Deploying BanzaiRaffle via viem (inside the window)...");
 const account = privateKeyToAccount(unified.privateKey);
 const wallet = createWalletClient({
   account,
@@ -221,41 +222,31 @@ const publicClient = createPublicClient({
 // Safety net: if estimation still reverts (e.g. a fresh window that has
 // not aged in yet), retry for up to 15 min instead of failing at once.
 // In --evm-only mode against an aged window it should land on attempt 1.
-// NOTE: artifacts MUST load before this loop — it references
-// tokenArtifact/raffleArtifact, and a const declared below would throw a
-// ReferenceError (TDZ) on every attempt, misreported as a revert.
-const tokenArtifact = loadArtifact("BanzaiToken");
+// NOTE: the artifact MUST load before this loop — a const declared below
+// the loop would throw a ReferenceError (TDZ) on every attempt,
+// misreported as a revert (this bit us on the BNZ deploy, 21 Nov).
+// The raffle has NO constructor args now, so bare-bytecode estimation
+// works (the old BNZ version needed a token arg — see
+// scripts/diag-raffle-estimate.mjs, kept for history).
 const raffleArtifact = loadArtifact("BanzaiRaffle");
-let tokenGasEst;
+let raffleGasEst;
 const estDeadline = Date.now() + 900_000;
 let estAttempt = 0;
 for (;;) {
   estAttempt++;
   try {
-    tokenGasEst = await publicClient.estimateGas({
+    raffleGasEst = await publicClient.estimateGas({
       account,
-      data: tokenArtifact.bytecode,
+      data: raffleArtifact.bytecode,
     });
-    console.log(`  token gas estimate landed on attempt ${estAttempt}: ${tokenGasEst}`);
+    console.log(`  raffle gas estimate landed on attempt ${estAttempt}: ${raffleGasEst}`);
     break;
   } catch (err) {
     if (Date.now() > estDeadline) throw err;
-    console.log(`  token estimate reverted (attempt ${estAttempt}) — window still propagating, retrying in 10s...`);
+    console.log(`  raffle estimate reverted (attempt ${estAttempt}) — window still propagating, retrying in 10s...`);
     await new Promise((r) => setTimeout(r, 10_000));
   }
 }
-// The raffle constructor takes the token address. Estimating with bare
-// bytecode (no args) REVERTS on this node — proven 21 Nov 2026 by
-// scripts/diag-raffle-estimate.mjs: WITH args lands 2,640,066 gas,
-// WITHOUT args reverts. The token is not deployed yet at this point, so
-// estimate with the operator's own address as a placeholder token — the
-// creation gas is the same for any non-zero 20-byte address (one SSTORE
-// of a non-zero word), and the real deploy below uses the real token
-// address. This keeps the pre-deploy budget check intact.
-const raffleGasEst = await publicClient.estimateGas({
-  account,
-  data: encodeDeployData({ abi: raffleArtifact.abi, bytecode: raffleArtifact.bytecode, args: [account.address] }),
-});
 
 // Fee terms (read live) + window budget check BEFORE the first deploy.
 let maxFeePerGas;
@@ -269,13 +260,13 @@ try {
   maxPriorityFeePerGas = undefined;
 }
 
-// Upper-bound the three EVM txs' max fees (deploys + startRaffle) against
+// Upper-bound the two EVM txs' max fees (deploy + startRaffle) against
 // the window's remaining value, rounding up (1 uqor = 10^12 wei).
 const startGasEst = 200_000n; // startRaffle is a simple SSTORE call; capped estimate
-const totalGasEst = tokenGasEst + raffleGasEst + startGasEst;
+const totalGasEst = raffleGasEst + startGasEst;
 const maxFeesWei = totalGasEst * maxFeePerGas;
 const maxFeesUqor = (maxFeesWei + 999_999_999_999n) / 1_000_000_000_000n;
-console.log(`  gas estimates: token ${tokenGasEst}, raffle ${raffleGasEst}, startRaffle ~${startGasEst}`);
+console.log(`  gas estimates: raffle ${raffleGasEst}, startRaffle ~${startGasEst}`);
 console.log(`  max fees upper bound: ${uqorToQor(maxFeesUqor)} QOR (window remaining ${uqorToQor(window.remainingValue)} QOR)`);
 if (maxFeesUqor > BigInt(window.remainingValue)) {
   fail(
@@ -288,21 +279,9 @@ const feeTerms = {
   ...(maxPriorityFeePerGas !== undefined ? { maxPriorityFeePerGas } : {}),
 };
 
-const tokenHash = await wallet.deployContract({
-  abi: tokenArtifact.abi,
-  bytecode: tokenArtifact.bytecode,
-  ...feeTerms,
-});
-const tokenReceipt = await publicClient.waitForTransactionReceipt({ hash: tokenHash, timeout: 120_000 });
-if (tokenReceipt.status !== "success") fail(`BanzaiToken deploy mined but FAILED (status ${tokenReceipt.status}).`);
-const tokenAddr = tokenReceipt.contractAddress;
-console.log(`  BanzaiToken (BNZ) deployed at: ${tokenAddr}`);
-console.log(`  explorer: ${explorerAddressUrl(tokenAddr)}`);
-
 const raffleHash = await wallet.deployContract({
   abi: raffleArtifact.abi,
   bytecode: raffleArtifact.bytecode,
-  args: [tokenAddr],
   ...feeTerms,
 });
 const raffleReceipt = await publicClient.waitForTransactionReceipt({ hash: raffleHash, timeout: 120_000 });
@@ -330,20 +309,20 @@ console.log(`  raffle #1 started (tx ${startHash}). Sales close at draw time.`);
 const out = {
   network: "qorechain",
   chainId: EVM_CHAIN_ID,
-  token: tokenAddr,
+  token: null, // QOR-native raffle — no play token (BNZ retired 21 Nov 2026)
   raffle: raffleAddr,
   raffleId: 1,
   drawTime: draw.toISOString(),
   drawTimeUnix: drawUnix,
-  ticketPriceBNZ: "5",
+  ticketPriceQOR: "5",
   maxTicketsPerPlayer: 20,
   deployer: unified.evm,
   operatorQor1: operator,
   deployedAt: new Date().toISOString(),
+  note: "QOR-native raffle: ticket purchases and payouts in native QOR. Get QOR from the QoreChain faucet (100 QOR/24h).",
   txs: {
     hybridProof: proof ? proof.transactionHash : "skipped (evm-only run — hybrid txs already on chain: PQC registration + earlier proof txs)",
     windowOpen: open ? open.transactionHash : "reused-live-window",
-    tokenDeploy: tokenHash,
     raffleDeploy: raffleHash,
     startRaffle: startHash,
   },
@@ -352,8 +331,8 @@ writeFileSync(deployedPath, JSON.stringify(out, null, 2) + "\n");
 console.log(`\nWrote ${deployedPath}`);
 writeFileSync(
   new URL("../deployment.json", import.meta.url),
-  JSON.stringify({ ...out, explorer: { token: explorerAddressUrl(tokenAddr), raffle: explorerAddressUrl(raffleAddr) } }, null, 2) + "\n",
+  JSON.stringify({ ...out, explorer: { raffle: explorerAddressUrl(raffleAddr) } }, null, 2) + "\n",
 );
 console.log("Wrote deployment.json (receipt with every tx hash + explorer link).");
-console.log("\nNext: point the frontend at these addresses (it reads deployed-addresses.json),");
-console.log("then fill the Fest Create-project form with the addresses + hybrid tx above.");
+console.log("\nNext: point the frontend at this address (it reads deployed-addresses.json),");
+console.log("then fill the Fest Create-project form with the address + hybrid tx above.");
