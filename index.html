@@ -4,12 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BANZAI VEGAS — On-chain raffle on QoreChain testnet</title>
-<meta name="description" content="BANZAI VEGAS: buy QOR raffle tickets on the QoreChain testnet (qorechain-diana), win the pot. 5 QOR a ticket, draws every Sunday, Tuesday and Thursday at 20:00 UTC. Post-quantum dApp — hybrid-signed operator. Testnet only — no real money.">
+<meta name="description" content="BANZAI VEGAS: buy QOR raffle tickets on the QoreChain testnet (qorechain-diana), win the pot. 5 QOR a ticket, draws every day at 20:00 UTC, automatic. Post-quantum dApp — hybrid-signed operator. Testnet only — no real money.">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="config.js"></script>
 </head>
 <body>
+<div class="qj-bg" aria-hidden="true">
+  <div class="qj-stars"></div>
+  <div class="qj-orb qj-orb-1"></div>
+  <div class="qj-orb qj-orb-2"></div>
+  <div class="qj-orb qj-orb-3"></div>
+  <div class="qj-orb qj-orb-4"></div>
+</div>
 <header class="topbar">
   <div class="brand"><span class="brand-mark">🎰</span> BANZAI <span class="brand-vegas">VEGAS</span></div>
   <nav>
@@ -21,6 +28,7 @@
 </header>
 
 <main>
+  <img class="hero-cover" src="cover.png" alt="BANZAI VEGAS — on-chain raffle on QoreChain testnet, 5 QOR a ticket" width="1280" height="720">
   <section class="hero">
     <div class="hero-left">
       <p class="eyebrow">RAFFLE <span id="raffleIdLabel">#1</span> · DRAW <span id="drawDateLabel">—</span></p>
@@ -72,12 +80,9 @@
   </section>
 
   <section class="card draw-card" id="drawCard">
-    <div class="card-head"><span>DRAW</span><span id="drawState">—</span></div>
-    <p id="drawInfo">Anyone can trigger the draw after sales close — the winner seed comes from a future blockhash, verifiable on-chain. No one picks winners.</p>
-    <div class="draw-actions">
-      <button id="drawBtn" class="btn btn-purple" disabled>Start draw</button>
-      <button id="finalizeBtn" class="btn btn-purple" disabled>Finalize &amp; pick winners</button>
-    </div>
+    <div class="card-head"><span>DRAW · OTOMATIS</span><span id="drawState">—</span></div>
+    <p id="drawInfo">The draw runs automatically at the scheduled time — no button, no manual trigger. The winner seed comes from a future blockhash, verifiable on-chain. No one picks winners.</p>
+    <p class="next-draw">Next draw: <strong id="nextDrawLabel">—</strong> (automatic)</p>
   </section>
 
   <section class="card" id="wins">
@@ -92,8 +97,8 @@
     <div class="card-head"><span>HOW IT WORKS</span></div>
     <ol>
       <li>Claim free QOR from the <a href="https://dashboard.qorechain.io/faucet" target="_blank">QoreChain faucet</a> (100 QOR per claim, once a day, testnet only).</li>
-      <li>Choose how many tickets (up to 20 per raffle). Each ticket is 5 QOR. Draws every Sunday, Tuesday and Thursday at 20:00 UTC.</li>
-      <li>After sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable, no one picks them. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.</li>
+      <li>Choose how many tickets (up to 20 per raffle). Each ticket is 5 QOR. Draws every day at 20:00 UTC, automatic.</li>
+      <li>After sales close, the draw runs automatically at 20:00 UTC — no one needs to press anything. Winners are picked from a future blockhash — public and verifiable, no one picks them. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.</li>
       <li>Won? Claim your prize from "My wins". It never expires — and it pays out in QOR.</li>
     </ol>
     <p class="muted">Testnet only. QOR on this testnet has no real value. Contracts: <span id="contractLinks">not deployed yet — see README</span></p>
@@ -102,6 +107,14 @@
 
 <footer> BANZAI VEGAS · QoreChain testnet (qorechain-diana) · Built by Toni Banzai (agusher21) · <a href="https://github.com/agusher21/banzai-vegas-qorechain">GitHub</a></footer>
 <div id="toast" class="toast"></div>
+<!-- Connect wallet picker — lists every supported wallet, detects which are installed -->
+<div id="walletModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="walletModalTitle">
+  <div class="modal-panel">
+    <div class="card-head"><span id="walletModalTitle">CONNECT WALLET</span><button id="walletModalClose" class="modal-close" aria-label="Close">✕</button></div>
+    <p class="hint">Pick a wallet to connect to QoreChain Testnet (chain 9800). Injected wallets connect directly — WalletConnect needs a projectId (see config.js).</p>
+    <div id="walletList"></div>
+  </div>
+</div>
 <script src="app.js"></script>
 </body>
 </html>

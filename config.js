@@ -14,6 +14,11 @@ const CONFIG = {
   raffleAddress: "0x0000000000000000000000000000000000000000", // BanzaiRaffle — REPLACE AFTER DEPLOYMENT
   ticketPriceQOR: 5,
   maxTicketsPerPlayer: 20,
+  // WalletConnect (optional): paste a projectId from https://cloud.walletconnect.com
+  // to enable the WalletConnect row in the "Connect wallet" picker. Leave it
+  // empty and WalletConnect shows as "needs projectId" — the injected
+  // wallets (MetaMask, Coinbase, Brave, OKX) work without it.
+  WALLETCONNECT_PROJECT_ID: "",
 };
 
 const RAFFLE_ABI = [
