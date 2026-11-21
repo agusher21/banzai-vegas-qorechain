@@ -74,6 +74,7 @@ async function refresh() {
     $("nextDrawLabel").textContent = "—";
     $("contractLinks").textContent = "QOR raffle not deployed yet — see DEPLOY.md";
     updateBuyButton();
+    renderLuckyTickets([]);
     return;
   }
   updateBuyButton();
@@ -81,6 +82,7 @@ async function refresh() {
     raffleId = Number(await raffle.currentRaffleId());
     if (raffleId === 0) {
       $("drawState").textContent = "NO ROUND OPEN";
+      renderLuckyTickets([]);
       return;
     }
     const r = await raffle.getRaffle(raffleId);
@@ -119,6 +121,7 @@ async function refresh() {
     }
 
     if (account) await refreshAccount();
+    else renderLuckyTickets([]);
   } catch (e) {
     console.error(e);
     $("drawState").textContent = "READ ERROR — check the RPC / addresses";
@@ -135,6 +138,7 @@ async function refreshAccount() {
     $("myTickets").textContent = "—";
     $("claimableAmount").textContent = "—";
     $("claimBtn").disabled = true;
+    renderLuckyTickets([]);
     updatePicker();
     return;
   }
@@ -142,10 +146,39 @@ async function refreshAccount() {
   myTicketCount = mine.length;
   $("youHold").textContent = `YOU HOLD ${myTicketCount} / ${CONFIG.maxTicketsPerPlayer}`;
   $("myTickets").textContent = mine.length ? "#" + mine.map(String).join(", #") : "none yet";
+  renderLuckyTickets(mine);
   const claimable = await raffle.claimable(raffleId, account);
   $("claimableAmount").textContent = fmtQOR(claimable) + " QOR";
   $("claimBtn").disabled = claimable === 0n;
   updatePicker();
+}
+
+// ---- YOUR LUCKY TICKET box (below the pot) ----
+// Persistent box showing the connected wallet's tickets for the current
+// round with their draw numbers (#0001 style). Buy 1 → 1 ticket, buy N →
+// all N. Reuses the ticket ids already fetched in refreshAccount()
+// (raffle.getPlayerTickets) — no extra chain call. Re-renders only when
+// the set changes, so the 30s refresh does not re-animate the chips.
+// Empty state (no wallet / no tickets / not deployed yet): a placeholder
+// chip + the "Belum ada tiket" line. The live page only ever shows real
+// on-chain ids; the only mock path is the ?preview=tickets screenshot
+// mode below.
+let luckyTicketKey = null;
+function renderLuckyTickets(ticketIds) {
+  const ids = (ticketIds || []).map(Number).filter((n) => Number.isFinite(n) && n > 0).sort((a, b) => a - b);
+  const key = ids.join(",");
+  if (key === luckyTicketKey) return;
+  luckyTicketKey = key;
+  $("luckyTicketCount").textContent = ids.length ? `${ids.length} TICKET${ids.length > 1 ? "S" : ""}` : "0 TICKETS";
+  if (!ids.length) {
+    $("luckyTicketNumbers").innerHTML = `<span class="ticket-chip ticket-chip-empty">#----</span>`;
+    $("luckyTicketEmpty").classList.remove("hidden");
+  } else {
+    $("luckyTicketEmpty").classList.add("hidden");
+    $("luckyTicketNumbers").innerHTML = ids.map((id) =>
+      `<span class="ticket-chip">#${String(id).padStart(4, "0")}</span>`
+    ).join("");
+  }
 }
 
 function updatePicker() {
@@ -205,6 +238,7 @@ function maybePreviewTickets() {
   if (raffleId === 0) raffleId = 1;
   if (!drawTime) drawTime = Math.floor(Date.now() / 1000) + 2 * 86400;
   showTicketReveal(nums);
+  renderLuckyTickets(nums);
 }
 
 async function ensureWallet() {

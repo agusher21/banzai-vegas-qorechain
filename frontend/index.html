@@ -39,6 +39,15 @@
     <div class="hero-left">
       <p class="eyebrow">RAFFLE <span id="raffleIdLabel">#1</span> · DRAW <span id="drawDateLabel">—</span></p>
       <h1><span id="potAmount">—</span> <span class="unit">QOR</span> <span class="pot-word">pot</span></h1>
+      <!-- YOUR LUCKY TICKET — persistent box below the pot: the connected
+           wallet's tickets for this round with their draw numbers. -->
+      <div class="lucky-ticket-box" id="luckyTicketBox">
+        <div class="lucky-ticket-head"><span class="lucky-ticket-title">🎫 YOUR LUCKY TICKET</span><span class="lucky-ticket-count" id="luckyTicketCount">0 TICKETS</span></div>
+        <div class="lucky-ticket-numbers" id="luckyTicketNumbers">
+          <span class="ticket-chip ticket-chip-empty">#----</span>
+        </div>
+        <p class="lucky-ticket-empty" id="luckyTicketEmpty">Belum ada tiket — beli tiket untuk melihat nomor undianmu.</p>
+      </div>
       <p class="sub">Sales close in <strong id="countdown">—</strong> · <span id="ticketsSold">—</span> tickets · <span id="playerCount">—</span> players</p>
       <div class="prizes">
         <div class="prize first"><span>1ST</span><strong id="prize1">—</strong></div>
