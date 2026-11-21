@@ -1,7 +1,20 @@
+/* Bebas Neue — condensed display face for the lotto/casino look (ticket
+   numbers, pot, headings, buttons). Self-hosted woff2 (latin subset) in
+   fonts/, downloaded from Google Fonts — no CDN dependency at runtime.
+   Fallback: Arial Narrow / Impact / sans-serif. Body text stays on the
+   system sans for readability. */
+@font-face {
+  font-family: "Bebas Neue";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/bebas-neue-latin.woff2") format("woff2");
+}
 :root {
   /* Cosmic theme shared with Tip Jar + Quantum Sentinel (QoreChain family):
      deep-space purple bg, violet / fuchsia / cyan orbs, gold kept for the
      QOR + Vegas identity. */
+  --font-display: "Bebas Neue", "Arial Narrow", Impact, sans-serif;
   --bg: #150a33;
   --panel: #1e0f45;
   --panel-2: #2a1a5e;
@@ -67,7 +80,7 @@ main, footer { position: relative; z-index: 1; }
   padding: 14px 28px; border-bottom: 1px solid var(--line);
   position: sticky; top: 0; background: rgba(21, 10, 51, .95); z-index: 10;
 }
-.brand { font-weight: 900; letter-spacing: 2px; font-size: 20px; }
+.brand { font-family: var(--font-display); font-weight: 400; letter-spacing: 3px; font-size: 24px; }
 .brand-mark { color: var(--gold); }
 .brand-vegas { color: var(--pink); }
 nav { display: flex; gap: 18px; margin-left: 12px; }
@@ -91,12 +104,13 @@ main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 40px; }
   align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 12px;
   background: linear-gradient(180deg, rgba(21, 10, 51, .25), rgba(21, 10, 51, .60));
 }
-.hero-banner-title { font-size: 36px; font-weight: 900; letter-spacing: 4px; color: var(--gold); text-shadow: 0 2px 14px rgba(0, 0, 0, .65); }
+.hero-banner-title { font-family: var(--font-display); font-size: 44px; font-weight: 400; letter-spacing: 6px; color: var(--gold); text-shadow: 0 2px 14px rgba(0, 0, 0, .65); }
 .hero-banner-sub { font-size: 15px; font-weight: 800; letter-spacing: 2px; color: #fff; text-shadow: 0 1px 10px rgba(0, 0, 0, .75); }
 .hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; align-items: start; }
 .eyebrow { color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 10px; }
-h1 { font-size: 64px; line-height: 1; font-weight: 900; }
-h1 .unit { color: var(--purple); font-size: 34px; }
+h1 { font-family: var(--font-display); font-size: 76px; line-height: 1; font-weight: 400; letter-spacing: 1px; }
+#potAmount { color: var(--gold); }
+h1 .unit { color: var(--purple); font-size: 40px; }
 h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
 .sub { color: var(--muted); margin: 14px 0 20px; }
 .sub strong { color: var(--gold); }
@@ -104,17 +118,35 @@ h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
 .prize { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
 .prize.first { background: linear-gradient(135deg, #3d2f10, #241c08); border-color: var(--gold-dim); }
 .prize span { display: block; color: var(--muted); font-size: 11px; letter-spacing: 1px; }
-.prize strong { font-size: 20px; color: var(--gold); }
+.prize strong { font-family: var(--font-display); font-size: 26px; color: var(--gold); letter-spacing: 1px; }
 .lucky { color: var(--muted); margin-top: 12px; font-size: 14px; }
+/* ---- YOUR LUCKY TICKET box — persistent, directly below the pot ---- */
+.lucky-ticket-box {
+  margin-top: 18px;
+  background: linear-gradient(180deg, #1d1533, var(--panel));
+  border: 1px solid var(--gold-dim);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.lucky-ticket-head {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  margin-bottom: 10px;
+}
+.lucky-ticket-title {
+  font-family: var(--font-display); font-size: 22px; letter-spacing: 2px; color: var(--gold);
+}
+.lucky-ticket-count { color: var(--muted); font-size: 12px; letter-spacing: 1px; white-space: nowrap; }
+.lucky-ticket-numbers { display: flex; flex-wrap: wrap; gap: 8px; }
+.lucky-ticket-empty { color: var(--muted); font-size: 13px; margin-top: 10px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 24px; }
-.card-head { display: flex; justify-content: space-between; color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 14px; }
+.card-head { display: flex; justify-content: space-between; color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 14px; font-family: var(--font-display); font-size: 17px; }
 .buy-card { margin-top: 0; }
 .ticket-box {
   background: linear-gradient(135deg, rgba(245, 197, 66, .92), rgba(232, 160, 32, .92)), url("cover.png") center/cover;
   color: #1a1200; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;
 }
 .ticket-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
-.ticket-no { font-size: 30px; font-weight: 900; }
+.ticket-no { font-family: var(--font-display); font-size: 38px; font-weight: 400; letter-spacing: 2px; }
 .ticket-week { font-size: 12px; opacity: .75; }
 .picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
 .qty {
@@ -126,15 +158,15 @@ h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
 .row { display: flex; justify-content: space-between; margin: 6px 0; }
 .row.muted { color: var(--muted); font-size: 14px; }
 .btn {
-  border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700;
-  cursor: pointer; font-size: 14px;
+  border: none; border-radius: 8px; padding: 10px 18px; font-weight: 400;
+  cursor: pointer; font-size: 15px; font-family: var(--font-display); letter-spacing: 2px;
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn-gold { background: var(--gold); color: #1a1200; }
 .btn-purple { background: var(--purple); color: #fff; }
 .btn-ghost { background: transparent; color: var(--gold); border: 1px solid var(--gold-dim); width: 100%; margin-top: 8px; }
 a.btn-ghost { display: block; text-align: center; text-decoration: none; }
-.btn-big { width: 100%; padding: 14px; font-size: 16px; letter-spacing: 1px; margin-top: 10px; }
+.btn-big { width: 100%; padding: 12px; font-size: 20px; letter-spacing: 3px; margin-top: 10px; }
 
 /* ---- animated ticket reveal (shown after a successful buy) ---- */
 .hidden { display: none; }
@@ -155,13 +187,18 @@ a.btn-ghost { display: block; text-align: center; text-decoration: none; }
 }
 .reveal-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
 .reveal-date { font-size: 12px; font-weight: 700; letter-spacing: 1px; opacity: .8; margin-top: 2px; }
-.reveal-big { font-size: 34px; font-weight: 900; margin: 4px 0; }
+.reveal-big { font-family: var(--font-display); font-size: 42px; font-weight: 400; margin: 4px 0; letter-spacing: 2px; }
 .reveal-sub { font-size: 12px; opacity: .75; }
 .reveal-numbers { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
 .ticket-chip {
   background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--gold);
-  border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: 15px;
+  border-radius: 999px; padding: 6px 14px; font-weight: 400; font-size: 18px;
+  font-family: var(--font-display); letter-spacing: 2px;
   opacity: 0; animation: chipIn .45s ease-out forwards;
+}
+.ticket-chip-empty {
+  border-style: dashed; color: var(--muted); border-color: var(--line);
+  background: transparent; animation: none; opacity: .7;
 }
 @keyframes chipIn {
   from { opacity: 0; transform: translateY(10px) scale(.85); }
@@ -210,7 +247,7 @@ footer a { color: var(--gold); }
 .wallet-row .btn { padding: 8px 14px; white-space: nowrap; width: auto; margin-top: 0; flex-shrink: 0; }
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; }
-  h1 { font-size: 44px; }
+  h1 { font-size: 52px; }
   nav { display: none; }
   .hero-cover { height: 160px; }
   .hero-banner-title { font-size: 26px; letter-spacing: 2px; }
