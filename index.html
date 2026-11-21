@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BANZAI VEGAS — On-chain raffle on QoreChain testnet</title>
-<meta name="description" content="BANZAI VEGAS: buy BNZ raffle tickets on the QoreChain testnet (qorechain-diana), win the pot. Draws every Sunday, Tuesday and Thursday at 20:00 UTC. Post-quantum dApp — hybrid-signed operator. Testnet only — no real money.">
+<meta name="description" content="BANZAI VEGAS: buy QOR raffle tickets on the QoreChain testnet (qorechain-diana), win the pot. 5 QOR a ticket, draws every Sunday, Tuesday and Thursday at 20:00 UTC. Post-quantum dApp — hybrid-signed operator. Testnet only — no real money.">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"></script>
 <script src="config.js"></script>
@@ -24,20 +24,20 @@
   <section class="hero">
     <div class="hero-left">
       <p class="eyebrow">RAFFLE <span id="raffleIdLabel">#1</span> · DRAW <span id="drawDateLabel">—</span></p>
-      <h1><span id="potAmount">—</span> <span class="unit">BNZ</span> <span class="pot-word">pot</span></h1>
+      <h1><span id="potAmount">—</span> <span class="unit">QOR</span> <span class="pot-word">pot</span></h1>
       <p class="sub">Sales close in <strong id="countdown">—</strong> · <span id="ticketsSold">—</span> tickets · <span id="playerCount">—</span> players</p>
       <div class="prizes">
         <div class="prize first"><span>1ST</span><strong id="prize1">—</strong></div>
         <div class="prize"><span>2ND</span><strong id="prize2">—</strong></div>
         <div class="prize"><span>3RD</span><strong id="prize3">—</strong></div>
       </div>
-      <p class="lucky">+ up to 29 lucky lots of 100 BNZ + 1 lucky lot of the remainder</p>
+      <p class="lucky">+ up to 29 lucky lots of 100 QOR + 1 lucky lot of the remainder</p>
     </div>
     <div class="hero-right" id="raffle">
       <div class="card buy-card">
         <div class="card-head"><span>BUY TICKETS</span><span id="youHold">YOU HOLD 0 / 20</span></div>
         <div class="ticket-box">
-          <p class="ticket-label">BNZ RAFFLE</p>
+          <p class="ticket-label">QOR RAFFLE</p>
           <p class="ticket-no">#<span id="nextTicketNo">—</span></p>
           <p class="ticket-week" id="raffleWeekLabel">—</p>
         </div>
@@ -48,13 +48,25 @@
           <button class="qty" data-qty="max">Max</button>
         </div>
         <p class="picked"><span id="pickedQty">2</span> TICKETS</p>
-        <div class="row"><span>Total</span><strong><span id="totalCost">10</span> BNZ</strong></div>
-        <div class="row muted"><span>Your BNZ balance</span><span id="myBalance">—</span></div>
+        <div class="row"><span>Total</span><strong><span id="totalCost">10</span> QOR</strong></div>
+        <div class="row muted"><span>Your QOR balance</span><span id="myBalance">—</span></div>
         <button id="buyBtn" class="btn btn-gold btn-big">BUY TICKETS</button>
-        <button id="faucetBtn" class="btn btn-ghost">Get 1,000 free BNZ (faucet)</button>
-        <p class="hint">Need QOR for gas? <a href="https://dashboard.qorechain.io/faucet" target="_blank">QoreChain faucet (100 QOR/day)</a></p>
+        <a id="qorFaucetBtn" class="btn btn-ghost" href="https://dashboard.qorechain.io/faucet" target="_blank">Get free QOR (faucet — 100 QOR/day)</a>
         <p class="hint" id="buyHint">With these tickets: your odds update after you buy.</p>
         <p class="hint">Your tickets this round: <span id="myTickets">—</span></p>
+      </div>
+
+      <!-- Animated ticket reveal — shown right after a successful purchase -->
+      <div class="card ticket-reveal hidden" id="ticketReveal">
+        <div class="card-head"><span>🎫 YOUR TICKETS</span><span id="revealRaffleNo">RAFFLE #1</span></div>
+        <div class="reveal-ticket">
+          <p class="reveal-label">QOR RAFFLE</p>
+          <p class="reveal-date" id="revealDrawDate">—</p>
+          <p class="reveal-big"><span id="revealCount">5</span> TICKETS</p>
+          <p class="reveal-sub">Draw numbers</p>
+        </div>
+        <div class="reveal-numbers" id="revealTickets"></div>
+        <p class="hint">Good luck — winners are picked from a future blockhash, no one picks them. Prizes never expire.</p>
       </div>
     </div>
   </section>
@@ -70,7 +82,7 @@
 
   <section class="card" id="wins">
     <div class="card-head"><span>MY WINS</span><span>PRIZES NEVER EXPIRE</span></div>
-    <p>Claimable now: <strong id="claimableAmount">0 BNZ</strong></p>
+    <p>Claimable now: <strong id="claimableAmount">0 QOR</strong></p>
     <button id="claimBtn" class="btn btn-gold" disabled>Claim my prizes</button>
     <h3>Last finalized round — winners</h3>
     <div id="winnersList"><p class="muted">No finalized round yet.</p></div>
@@ -79,12 +91,12 @@
   <section class="card" id="how">
     <div class="card-head"><span>HOW IT WORKS</span></div>
     <ol>
-      <li>Claim free BNZ from the faucet (1,000 BNZ, once a day, testnet only).</li>
-      <li>Choose how many tickets (up to 20 per raffle). Each ticket is 5 BNZ. Draws every Sunday, Tuesday and Thursday at 20:00 UTC.</li>
-      <li>After sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable, no one picks them. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 BNZ plus one lot of the remainder.</li>
-      <li>Won? Claim your prize from "My wins". It never expires.</li>
+      <li>Claim free QOR from the <a href="https://dashboard.qorechain.io/faucet" target="_blank">QoreChain faucet</a> (100 QOR per claim, once a day, testnet only).</li>
+      <li>Choose how many tickets (up to 20 per raffle). Each ticket is 5 QOR. Draws every Sunday, Tuesday and Thursday at 20:00 UTC.</li>
+      <li>After sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable, no one picks them. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.</li>
+      <li>Won? Claim your prize from "My wins". It never expires — and it pays out in QOR.</li>
     </ol>
-    <p class="muted">Testnet only. BNZ has no real value. Contracts: <span id="contractLinks">not deployed yet — see README</span></p>
+    <p class="muted">Testnet only. QOR on this testnet has no real value. Contracts: <span id="contractLinks">not deployed yet — see README</span></p>
   </section>
 </main>
 

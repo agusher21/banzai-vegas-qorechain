@@ -71,7 +71,40 @@ h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
 .btn-gold { background: var(--gold); color: #1a1200; }
 .btn-purple { background: var(--purple); color: #fff; }
 .btn-ghost { background: transparent; color: var(--gold); border: 1px solid var(--gold-dim); width: 100%; margin-top: 8px; }
+a.btn-ghost { display: block; text-align: center; text-decoration: none; }
 .btn-big { width: 100%; padding: 14px; font-size: 16px; letter-spacing: 1px; margin-top: 10px; }
+
+/* ---- animated ticket reveal (shown after a successful buy) ---- */
+.hidden { display: none; }
+.ticket-reveal {
+  border-color: var(--gold-dim);
+  background: linear-gradient(180deg, #1d1533, var(--panel));
+  perspective: 800px;
+}
+.ticket-reveal.reveal { animation: ticketFlip .7s cubic-bezier(.2, .7, .3, 1.2) both; }
+@keyframes ticketFlip {
+  from { opacity: 0; transform: rotateY(70deg) translateY(14px) scale(.96); }
+  to { opacity: 1; transform: rotateY(0) translateY(0) scale(1); }
+}
+.reveal-ticket {
+  background: linear-gradient(135deg, var(--gold), #e8a020);
+  color: #1a1200; border-radius: 10px; padding: 16px; text-align: center;
+  border: 2px dashed rgba(26, 18, 0, .35); outline: 2px solid rgba(245, 197, 66, .25); outline-offset: 4px;
+}
+.reveal-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+.reveal-date { font-size: 12px; font-weight: 700; letter-spacing: 1px; opacity: .8; margin-top: 2px; }
+.reveal-big { font-size: 34px; font-weight: 900; margin: 4px 0; }
+.reveal-sub { font-size: 12px; opacity: .75; }
+.reveal-numbers { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 4px; }
+.ticket-chip {
+  background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--gold);
+  border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: 15px;
+  opacity: 0; animation: chipIn .45s ease-out forwards;
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: translateY(10px) scale(.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
 .draw-actions { display: flex; gap: 10px; margin-top: 12px; }
 #winnersList p, #winnersList li { margin: 6px 0; }

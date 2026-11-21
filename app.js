@@ -1,12 +1,14 @@
 // BANZAI VEGAS frontend — reads work without a wallet (public QoreChain testnet (qorechain-diana, EVM 9800)
 // RPC); buying / claiming / drawing need MetaMask on QoreChain testnet (9800).
+// QOR-native: tickets cost 5 QOR each, paid as native value with the buy
+// call; prizes pay out in QOR. No token, no approval step — get QOR from
+// the QoreChain faucet (100 QOR/day).
 const $ = (id) => document.getElementById(id);
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 let readProvider = null;
 let signer = null;
 let account = null;
-let token = null;
 let raffle = null;
 let raffleId = 0;
 let drawTime = 0;
@@ -22,7 +24,7 @@ function toast(msg) {
   setTimeout(() => (t.style.display = "none"), 6000);
 }
 
-function fmtBNZ(v) {
+function fmtQOR(v) {
   return Number(ethers.formatEther(v)).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
 
@@ -48,22 +50,21 @@ async function loadAddresses() {
     const res = await fetch("deployed-addresses.json");
     if (res.ok) {
       const d = await res.json();
-      if (d.chainId === CONFIG.chainId && d.token && d.raffle) {
-        CONFIG.tokenAddress = d.token;
+      if (d.chainId === CONFIG.chainId && d.raffle && !d.retired) {
         CONFIG.raffleAddress = d.raffle;
         deployed = true;
       }
     }
   } catch (e) { /* no deployed-addresses.json yet — use CONFIG placeholders */ }
-  if (CONFIG.tokenAddress !== ZERO && CONFIG.raffleAddress !== ZERO) deployed = true;
+  if (CONFIG.raffleAddress !== ZERO) deployed = true;
 }
 
 async function refresh() {
   if (!deployed) {
     $("potAmount").textContent = "—";
     $("drawState").textContent = "NOT DEPLOYED YET";
-    $("drawInfo").textContent = "Contracts are not deployed on QoreChain yet. See DEPLOY.md in the repo — deployment needs the operator's testnet wallet (faucet-funded).";
-    $("contractLinks").textContent = "not deployed yet — see DEPLOY.md";
+    $("drawInfo").textContent = "The QOR-native raffle is not deployed on QoreChain yet — the BNZ version was retired 21 Nov 2026 and the QOR redeploy is pending. See DEPLOY.md in the repo.";
+    $("contractLinks").textContent = "QOR raffle not deployed yet — see DEPLOY.md";
     return;
   }
   try {
@@ -78,13 +79,13 @@ async function refresh() {
     $("raffleIdLabel").textContent = "#" + raffleId;
     $("drawDateLabel").textContent = drawDateLabel(drawTime);
     $("raffleWeekLabel").textContent = "DRAW " + drawDateLabel(drawTime).toUpperCase();
-    $("potAmount").textContent = fmtBNZ(r.pot);
+    $("potAmount").textContent = fmtQOR(r.pot);
     $("ticketsSold").textContent = Number(r.totalTickets).toLocaleString();
     $("playerCount").textContent = Number(r.playerCount).toLocaleString();
     $("nextTicketNo").textContent = String(Number(r.totalTickets) + 1).padStart(4, "0");
-    $("prize1").textContent = fmtBNZ((r.pot * 30n) / 100n) + " BNZ";
-    $("prize2").textContent = fmtBNZ((r.pot * 18n) / 100n) + " BNZ";
-    $("prize3").textContent = fmtBNZ((r.pot * 12n) / 100n) + " BNZ";
+    $("prize1").textContent = fmtQOR((r.pot * 30n) / 100n) + " QOR";
+    $("prize2").textContent = fmtQOR((r.pot * 18n) / 100n) + " QOR";
+    $("prize3").textContent = fmtQOR((r.pot * 12n) / 100n) + " QOR";
 
     const now = Date.now();
     if (raffleState === 0) {
@@ -107,7 +108,7 @@ async function refresh() {
       const winners = await raffle.getWinners(showId);
       if (winners.length) {
         $("winnersList").innerHTML = "<ul>" + winners.map((w) =>
-          `<li>Ticket #${w.ticketId} — ${w.player.slice(0, 6)}…${w.player.slice(-4)} — <strong>${fmtBNZ(w.prize)} BNZ</strong>${w.claimed ? " (claimed)" : ""}</li>`
+          `<li>Ticket #${w.ticketId} — ${w.player.slice(0, 6)}…${w.player.slice(-4)} — <strong>${fmtQOR(w.prize)} QOR</strong>${w.claimed ? " (claimed)" : ""}</li>`
         ).join("") + "</ul>";
       }
     }
@@ -120,14 +121,14 @@ async function refresh() {
 }
 
 async function refreshAccount() {
-  const bal = await token.balanceOf(account);
-  $("myBalance").textContent = fmtBNZ(bal) + " BNZ";
+  const bal = await readProvider.getBalance(account);
+  $("myBalance").textContent = fmtQOR(bal) + " QOR";
   const mine = await raffle.getPlayerTickets(raffleId, account);
   myTicketCount = mine.length;
   $("youHold").textContent = `YOU HOLD ${myTicketCount} / ${CONFIG.maxTicketsPerPlayer}`;
   $("myTickets").textContent = mine.length ? "#" + mine.map(String).join(", #") : "none yet";
   const claimable = await raffle.claimable(raffleId, account);
-  $("claimableAmount").textContent = fmtBNZ(claimable) + " BNZ";
+  $("claimableAmount").textContent = fmtQOR(claimable) + " QOR";
   $("claimBtn").disabled = claimable === 0n;
   updatePicker();
 }
@@ -138,9 +139,40 @@ function updatePicker() {
   if (typeof pickedQty === "number" && pickedQty > max) pickedQty = max;
   const qty = pickedQty === "max" ? max : pickedQty;
   $("pickedQty").textContent = qty;
-  $("totalCost").textContent = qty * CONFIG.ticketPriceBNZ;
+  $("totalCost").textContent = qty * CONFIG.ticketPriceQOR;
   document.querySelectorAll(".qty").forEach((b) =>
     b.classList.toggle("selected", String(b.dataset.qty) === String(pickedQty)));
+}
+
+// ---- animated ticket reveal -------------------------------------------
+// After a successful buy, show the player's tickets as a ticket card that
+// flips in, with the draw numbers staggering in one by one.
+function showTicketReveal(ticketIds) {
+  const card = $("ticketReveal");
+  $("revealRaffleNo").textContent = "RAFFLE #" + raffleId;
+  $("revealDrawDate").textContent = drawTime ? drawDateLabel(drawTime) : "—";
+  $("revealCount").textContent = ticketIds.length;
+  $("revealTickets").innerHTML = ticketIds.map((id, i) =>
+    `<span class="ticket-chip" style="animation-delay:${0.15 + i * 0.12}s">#${String(id).padStart(4, "0")}</span>`
+  ).join("");
+  // Restart the flip animation each time it is shown.
+  card.classList.remove("hidden", "reveal");
+  void card.offsetWidth; // reflow — restarts the CSS animation
+  card.classList.add("reveal");
+  card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// Preview mode for screenshots / Toni's correction pass:
+//   ?preview=tickets&nums=1,2,3,4,5
+// Renders the ticket card with the given draw numbers (real numbers from a
+// local Hardhat purchase, or mock data) without needing a wallet or a buy.
+function maybePreviewTickets() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("preview") !== "tickets") return;
+  const nums = (params.get("nums") || "1,2,3,4,5").split(",").map((s) => Number(s.trim())).filter(Boolean);
+  if (raffleId === 0) raffleId = 1;
+  if (!drawTime) drawTime = Math.floor(Date.now() / 1000) + 2 * 86400;
+  showTicketReveal(nums);
 }
 
 async function ensureWallet() {
@@ -169,7 +201,6 @@ async function connectWallet() {
   account = accounts[0];
   signer = await provider.getSigner();
   $("connectBtn").textContent = account.slice(0, 6) + "…" + account.slice(-4);
-  token = token.connect(signer);
   raffle = raffle.connect(signer);
   await refreshAccount();
   toast("Connected: " + account);
@@ -179,31 +210,16 @@ async function buy() {
   if (!(await ensureWallet())) return;
   const qty = pickedQty === "max" ? Math.max(0, CONFIG.maxTicketsPerPlayer - myTicketCount) : pickedQty;
   if (!qty) { toast("You already hold the max 20 tickets this round."); return; }
-  const cost = ethers.parseEther(String(qty * CONFIG.ticketPriceBNZ));
+  const cost = ethers.parseEther(String(qty * CONFIG.ticketPriceQOR));
   try {
-    const allowance = await token.allowance(account, CONFIG.raffleAddress);
-    if (allowance < cost) {
-      toast("Step 1/2: approving BNZ spend…");
-      const tx1 = await token.approve(CONFIG.raffleAddress, cost);
-      await tx1.wait();
-    }
-    toast(`Step 2/2: buying ${qty} ticket(s)…`);
-    const tx2 = await raffle.buyTickets(qty);
-    await tx2.wait();
+    toast(`Buying ${qty} ticket(s) for ${qty * CONFIG.ticketPriceQOR} QOR…`);
+    const tx = await raffle.buyTickets(qty, { value: cost });
+    await tx.wait();
     toast(`Bought ${qty} ticket(s). Good luck!`);
     await refresh();
+    const mine = await raffle.getPlayerTickets(raffleId, account);
+    showTicketReveal(mine.map(Number));
   } catch (e) { console.error(e); toast("Buy failed: " + (e.reason || e.message || e)); }
-}
-
-async function faucet() {
-  if (!(await ensureWallet())) return;
-  try {
-    toast("Claiming 1,000 BNZ from the faucet…");
-    const tx = await token.faucet();
-    await tx.wait();
-    toast("1,000 BNZ claimed. One claim per address per 24h.");
-    await refresh();
-  } catch (e) { console.error(e); toast("Faucet failed: " + (e.reason || e.message || e)); }
 }
 
 async function claim() {
@@ -211,7 +227,7 @@ async function claim() {
   try {
     const tx = await raffle.claim(raffleId);
     await tx.wait();
-    toast("Prizes claimed. Congratulations!");
+    toast("Prizes claimed in QOR. Congratulations!");
     await refresh();
   } catch (e) { console.error(e); toast("Claim failed: " + (e.reason || e.message || e)); }
 }
@@ -231,7 +247,6 @@ async function finalize() {
 document.querySelectorAll(".qty").forEach((b) =>
   b.addEventListener("click", () => { pickedQty = b.dataset.qty === "max" ? "max" : Number(b.dataset.qty); updatePicker(); }));
 $("buyBtn").addEventListener("click", buy);
-$("faucetBtn").addEventListener("click", faucet);
 $("claimBtn").addEventListener("click", claim);
 $("drawBtn").addEventListener("click", draw);
 $("finalizeBtn").addEventListener("click", finalize);
@@ -241,13 +256,12 @@ $("connectBtn").addEventListener("click", connectWallet);
   await loadAddresses();
   readProvider = new ethers.JsonRpcProvider(CONFIG.rpcUrl);
   if (deployed) {
-    token = new ethers.Contract(CONFIG.tokenAddress, TOKEN_ABI, readProvider);
     raffle = new ethers.Contract(CONFIG.raffleAddress, RAFFLE_ABI, readProvider);
     $("contractLinks").innerHTML =
-      `BNZ <a href="${CONFIG.blockExplorer}/token/${CONFIG.tokenAddress}" target="_blank">${CONFIG.tokenAddress.slice(0, 10)}…</a> · ` +
-      `Raffle <a href="${CONFIG.blockExplorer}/address/${CONFIG.raffleAddress}" target="_blank">${CONFIG.raffleAddress.slice(0, 10)}…</a>`;
+      `Raffle <a href="${CONFIG.blockExplorer}/address/${CONFIG.raffleAddress}" target="_blank">${CONFIG.raffleAddress.slice(0, 10)}…</a> · QOR-native — tickets &amp; payouts in QOR`;
   }
   await refresh();
+  maybePreviewTickets();
   setInterval(async () => {
     if (drawTime) $("countdown").textContent = fmtCountdown(drawTime * 1000 - Date.now());
   }, 1000);
