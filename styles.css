@@ -1,0 +1,92 @@
+:root {
+  --bg: #0a0812;
+  --panel: #14101f;
+  --panel-2: #1b1530;
+  --gold: #f5c542;
+  --gold-dim: #c9a227;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+  --text: #f3f1f8;
+  --muted: #9a93ad;
+  --line: #2c2444;
+  --green: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+.topbar {
+  display: flex; align-items: center; gap: 24px;
+  padding: 14px 28px; border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; background: rgba(10, 8, 18, .95); z-index: 10;
+}
+.brand { font-weight: 900; letter-spacing: 2px; font-size: 20px; }
+.brand-mark { color: var(--gold); }
+.brand-vegas { color: var(--pink); }
+nav { display: flex; gap: 18px; margin-left: 12px; }
+nav a { color: var(--muted); text-decoration: none; font-size: 13px; letter-spacing: 1px; }
+nav a.nav-active { color: var(--gold); border-bottom: 2px solid var(--gold); padding-bottom: 2px; }
+#connectBtn { margin-left: auto; }
+main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 40px; }
+.hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; align-items: start; }
+.eyebrow { color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 10px; }
+h1 { font-size: 64px; line-height: 1; font-weight: 900; }
+h1 .unit { color: var(--purple); font-size: 34px; }
+h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
+.sub { color: var(--muted); margin: 14px 0 20px; }
+.sub strong { color: var(--gold); }
+.prizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.prize { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+.prize.first { background: linear-gradient(135deg, #3d2f10, #241c08); border-color: var(--gold-dim); }
+.prize span { display: block; color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+.prize strong { font-size: 20px; color: var(--gold); }
+.lucky { color: var(--muted); margin-top: 12px; font-size: 14px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 24px; }
+.card-head { display: flex; justify-content: space-between; color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 14px; }
+.buy-card { margin-top: 0; }
+.ticket-box {
+  background: linear-gradient(135deg, var(--gold), #e8a020);
+  color: #1a1200; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;
+}
+.ticket-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
+.ticket-no { font-size: 30px; font-weight: 900; }
+.ticket-week { font-size: 12px; opacity: .75; }
+.picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 8px; }
+.qty {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px; font-size: 16px; cursor: pointer;
+}
+.qty.selected { border-color: var(--gold); color: var(--gold); }
+.picked { text-align: center; color: var(--muted); margin-bottom: 12px; }
+.row { display: flex; justify-content: space-between; margin: 6px 0; }
+.row.muted { color: var(--muted); font-size: 14px; }
+.btn {
+  border: none; border-radius: 8px; padding: 10px 18px; font-weight: 700;
+  cursor: pointer; font-size: 14px;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-gold { background: var(--gold); color: #1a1200; }
+.btn-purple { background: var(--purple); color: #fff; }
+.btn-ghost { background: transparent; color: var(--gold); border: 1px solid var(--gold-dim); width: 100%; margin-top: 8px; }
+.btn-big { width: 100%; padding: 14px; font-size: 16px; letter-spacing: 1px; margin-top: 10px; }
+.hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
+.draw-actions { display: flex; gap: 10px; margin-top: 12px; }
+#winnersList p, #winnersList li { margin: 6px 0; }
+.muted { color: var(--muted); }
+#how ol { margin: 0 0 12px 20px; }
+#how li { margin: 8px 0; line-height: 1.5; }
+footer { text-align: center; color: var(--muted); padding: 20px; font-size: 13px; }
+footer a { color: var(--gold); }
+.toast {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--text);
+  padding: 12px 20px; border-radius: 8px; display: none; max-width: 90vw; z-index: 50;
+}
+@media (max-width: 760px) {
+  .hero { grid-template-columns: 1fr; }
+  h1 { font-size: 44px; }
+  nav { display: none; }
+}
