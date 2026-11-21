@@ -73,8 +73,10 @@ async function refresh() {
     $("drawInfo").textContent = "The QOR-native raffle is not deployed on QoreChain yet — the BNZ version was retired 21 Nov 2026 and the QOR redeploy is pending. See DEPLOY.md in the repo.";
     $("nextDrawLabel").textContent = "—";
     $("contractLinks").textContent = "QOR raffle not deployed yet — see DEPLOY.md";
+    updateBuyButton();
     return;
   }
+  updateBuyButton();
   try {
     raffleId = Number(await raffle.currentRaffleId());
     if (raffleId === 0) {
@@ -155,6 +157,23 @@ function updatePicker() {
   $("totalCost").textContent = qty * CONFIG.ticketPriceQOR;
   document.querySelectorAll(".qty").forEach((b) =>
     b.classList.toggle("selected", String(b.dataset.qty) === String(pickedQty)));
+}
+
+// The Buy button must not look clickable when there is no raffle to buy
+// from. The QOR raffle is not deployed yet, so `raffle` is null and a buy
+// would crash on `raffle.connect(...)` — the button is disabled and
+// labelled COMING SOON until a deploy lands (refresh() re-checks every
+// 30s). The guard in buy()/claim() below is the real protection; this is
+// just the visible state.
+function updateBuyButton() {
+  const btn = $("buyBtn");
+  if (!deployed || !raffle) {
+    btn.disabled = true;
+    btn.textContent = "COMING SOON — NOT DEPLOYED YET";
+  } else {
+    btn.disabled = false;
+    btn.textContent = "BUY TICKETS";
+  }
 }
 
 // ---- animated ticket reveal -------------------------------------------
@@ -490,6 +509,11 @@ function maybePreviewWallet() {
 }
 
 async function buy() {
+  // No raffle contract yet (QOR redeploy pending) — `raffle` is null, so
+  // calling raffle.connect(...) would crash. Say so plainly and do not
+  // attempt the transaction (and do not ask for a wallet first — the
+  // missing deployment is the blocker, not the wallet).
+  if (!deployed || !raffle) { toast("Raffle belum di-deploy — coming soon"); return; }
   if (!(await ensureWallet())) return;
   const qty = pickedQty === "max" ? Math.max(0, CONFIG.maxTicketsPerPlayer - myTicketCount) : pickedQty;
   if (!qty) { toast("You already hold the max 20 tickets this round."); return; }
@@ -506,6 +530,9 @@ async function buy() {
 }
 
 async function claim() {
+  // Same guard as buy(): no raffle contract yet, so there is nothing to
+  // claim from — say so instead of crashing on raffle.connect(...).
+  if (!deployed || !raffle) { toast("Raffle belum di-deploy — coming soon"); return; }
   if (!(await ensureWallet())) return;
   try {
     const tx = await raffle.connect(signer).claim(raffleId);

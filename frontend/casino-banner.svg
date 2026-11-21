@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" role="img" aria-label="Casino — roulette wheel, lottery balls, dice and gold coins">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#150a33"/>
+      <stop offset=".5" stop-color="#2a1a5e"/>
+      <stop offset="1" stop-color="#12081f"/>
+    </linearGradient>
+    <radialGradient id="glowViolet" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#7c3aed" stop-opacity=".8"/>
+      <stop offset="1" stop-color="#7c3aed" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#d946ef" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#d946ef" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowGold" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#f5c542" stop-opacity=".55"/>
+      <stop offset="1" stop-color="#f5c542" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset=".5" stop-color="#f5c542"/>
+      <stop offset="1" stop-color="#c9a227"/>
+    </linearGradient>
+    <linearGradient id="goldCoin" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#e8a020"/>
+    </linearGradient>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="1280" height="320" fill="url(#bg)"/>
+  <ellipse cx="220" cy="160" rx="340" ry="190" fill="url(#glowViolet)"/>
+  <ellipse cx="1050" cy="150" rx="330" ry="180" fill="url(#glowPink)"/>
+  <ellipse cx="640" cy="170" rx="300" ry="150" fill="url(#glowGold)"/>
+
+  <!-- sparkles -->
+  <g fill="#fde68a">
+    <path d="M640 40l5 14 14 5-14 5-5 14-5-14-14-5 14-5z"/>
+    <path d="M980 60l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" opacity=".8"/>
+    <path d="M320 250l4 11 11 4-11 4-4 11-4-11-11-4 11-4z" opacity=".8"/>
+    <path d="M760 260l5 14 14 5-14 5-5 14-5-14-14-5 14-5z" opacity=".9"/>
+  </g>
+  <g fill="#a5f3fc">
+    <path d="M430 70l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" opacity=".9"/>
+    <path d="M1120 240l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" opacity=".9"/>
+  </g>
+
+  <!-- roulette wheel -->
+  <g transform="translate(215 160)">
+    <circle r="128" fill="#1a1200" stroke="url(#gold)" stroke-width="7"/>
+    <!-- alternating red / black pockets (dash trick) -->
+    <circle r="98" fill="none" stroke="#dc2626" stroke-width="34" stroke-dasharray="25.6 25.6"/>
+    <circle r="98" fill="none" stroke="#111111" stroke-width="34" stroke-dasharray="25.6 25.6" stroke-dashoffset="25.6"/>
+    <circle r="98" fill="none" stroke="#f5c542" stroke-width="2" stroke-dasharray="3 6" opacity=".7"/>
+    <circle r="76" fill="#150a33" stroke="url(#gold)" stroke-width="4"/>
+    <circle r="60" fill="none" stroke="#7c3aed" stroke-width="2" opacity=".8"/>
+    <!-- ball -->
+    <circle cx="52" cy="-52" r="9" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <circle r="20" fill="url(#gold)" stroke="#8a6d1f" stroke-width="2"/>
+    <circle r="8" fill="#1a1200"/>
+    <!-- spokes -->
+    <g stroke="#f5c542" stroke-width="3" opacity=".8">
+      <line x1="0" y1="-76" x2="0" y2="-20"/>
+      <line x1="0" y1="20" x2="0" y2="76"/>
+      <line x1="-76" y1="0" x2="-20" y2="0"/>
+      <line x1="20" y1="0" x2="76" y2="0"/>
+    </g>
+  </g>
+
+  <!-- lottery balls -->
+  <g font-family="Segoe UI, system-ui, sans-serif" font-weight="900" text-anchor="middle">
+    <g><circle cx="470" cy="120" r="34" fill="#ef4444" stroke="#fff" stroke-width="3"/><text x="470" y="132" font-size="30" fill="#fff">7</text></g>
+    <g><circle cx="560" cy="180" r="38" fill="#3b82f6" stroke="#fff" stroke-width="3"/><text x="560" y="193" font-size="32" fill="#fff">21</text></g>
+    <g><circle cx="660" cy="115" r="33" fill="#22c55e" stroke="#fff" stroke-width="3"/><text x="660" y="127" font-size="29" fill="#fff">42</text></g>
+    <g><circle cx="760" cy="185" r="36" fill="#eab308" stroke="#fff" stroke-width="3"/><text x="760" y="197" font-size="31" fill="#1a1200">13</text></g>
+    <g><circle cx="855" cy="120" r="32" fill="#d946ef" stroke="#fff" stroke-width="3"/><text x="855" y="131" font-size="28" fill="#fff">5</text></g>
+  </g>
+
+  <!-- dice -->
+  <g transform="translate(950 200) rotate(-14)">
+    <rect x="-34" y="-34" width="68" height="68" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <circle cx="-17" cy="-17" r="7" fill="#111"/><circle cx="17" cy="-17" r="7" fill="#111"/>
+    <circle cx="0" cy="0" r="7" fill="#111"/>
+    <circle cx="-17" cy="17" r="7" fill="#111"/><circle cx="17" cy="17" r="7" fill="#111"/>
+  </g>
+  <g transform="translate(1040 130) rotate(12)">
+    <rect x="-30" y="-30" width="60" height="60" rx="11" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+    <circle cx="-14" cy="-14" r="6" fill="#111"/><circle cx="14" cy="14" r="6" fill="#111"/>
+    <circle cx="14" cy="-14" r="6" fill="#111"/><circle cx="-14" cy="14" r="6" fill="#111"/>
+  </g>
+
+  <!-- gold coins -->
+  <g font-family="Segoe UI, system-ui, sans-serif" font-weight="900" text-anchor="middle">
+    <g transform="translate(1150 210)">
+      <circle r="42" fill="url(#goldCoin)" stroke="#8a6d1f" stroke-width="3"/>
+      <circle r="32" fill="none" stroke="#8a6d1f" stroke-width="2" opacity=".7"/>
+      <text y="12" font-size="36" fill="#7c4a03">$</text>
+    </g>
+    <g transform="translate(1210 140)">
+      <circle r="34" fill="url(#goldCoin)" stroke="#8a6d1f" stroke-width="3"/>
+      <circle r="25" fill="none" stroke="#8a6d1f" stroke-width="2" opacity=".7"/>
+      <text y="10" font-size="29" fill="#7c4a03">$</text>
+    </g>
+    <g transform="translate(1090 120)">
+      <circle r="28" fill="url(#goldCoin)" stroke="#8a6d1f" stroke-width="3"/>
+      <circle r="20" fill="none" stroke="#8a6d1f" stroke-width="2" opacity=".7"/>
+      <text y="9" font-size="24" fill="#7c4a03">$</text>
+    </g>
+  </g>
+
+  <!-- slot-machine cherries accent -->
+  <g transform="translate(420 250)">
+    <circle cx="-12" cy="6" r="12" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>
+    <circle cx="12" cy="8" r="12" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+    <path d="M-12 -4 Q0 -26 14 -2" fill="none" stroke="#22c55e" stroke-width="3"/>
+    <ellipse cx="8" cy="-16" rx="9" ry="5" fill="#22c55e" transform="rotate(-20 8 -16)"/>
+  </g>
+</svg>
