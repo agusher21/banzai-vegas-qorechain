@@ -1,29 +1,21 @@
 {
-  "chainId": 9800,
-  "deployer": "0xb66DFD01Fc5eEC24f7d59c730ECA541addcbd110",
-  "drawTime": null,
-  "drawTimeUnix": null,
-  "maxTicketsPerPlayer": 20,
   "network": "qorechain",
-  "operatorQor1": "qor1kekl6q0utmkzfa74n3esajj5rtwuh5gsdh4gvh",
-  "previousDeployment": {
-    "deployedAt": "2026-11-21T08:03:10.522Z",
-    "drawTime": "2026-11-22T20:00:00.000Z",
-    "drawTimeUnix": 1795377600,
-    "raffle": "0x2457ba1f2acdfd7015ceeb4c350b237cea5e3178",
-    "raffleId": 1,
-    "ticketPriceBNZ": "5",
-    "token": "0x3d1c5dad2b1a11b7dda71365fdc2e66a97ce1a5d",
-    "txs": {
-      "raffleDeploy": "0x1c026d8dd3e551c9397bfa6822d77f694fef44c106b856dbbd1f001b63f3430a",
-      "startRaffle": "0x63f3581b7847bf6941d799b014abe52c9051edecfb18d0773faa4a3c57a32882",
-      "tokenDeploy": "0x8409dea54c33a0e8381502db7fbfb059b89dde343721cb5c2d01260c704e28ae"
-    }
-  },
-  "raffle": "0x0000000000000000000000000000000000000000",
-  "raffleId": 0,
-  "retired": true,
-  "retiredNote": "BNZ version retired 21 Nov 2026 \u2014 the raffle is QOR-native now (tickets + payouts in native QOR). QOR redeploy pending Toni's correction. Old addresses below are abandoned, kept for history.",
+  "chainId": 9800,
+  "token": null,
+  "raffle": "0x24f9cffaf5334b2bae7a2da0c5fd8e6dffbc291e",
+  "raffleId": 1,
+  "drawTime": "2026-11-22T20:00:00.000Z",
+  "drawTimeUnix": 1795377600,
   "ticketPriceQOR": "5",
-  "token": null
+  "maxTicketsPerPlayer": 20,
+  "deployer": "0xb66DFD01Fc5eEC24f7d59c730ECA541addcbd110",
+  "operatorQor1": "qor1kekl6q0utmkzfa74n3esajj5rtwuh5gsdh4gvh",
+  "deployedAt": "2026-11-21T10:46:39.501Z",
+  "note": "QOR-native raffle: ticket purchases and payouts in native QOR. Get QOR from the QoreChain faucet (100 QOR/24h).",
+  "txs": {
+    "hybridProof": "skipped (evm-only run — hybrid txs already on chain: PQC registration + earlier proof txs)",
+    "windowOpen": "reused-live-window",
+    "raffleDeploy": "0x00416cacfc8d44f9719f58724df24a1381ac7c24bb1b96f6fbef763e8bf96fac",
+    "startRaffle": "0xf170bd7560f95974e148de51dcebdb50d31869551ab1020312c820297f67b2a3"
+  }
 }
