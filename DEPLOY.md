@@ -53,7 +53,7 @@ simulation sends nothing):
    viem, inside the window. Its max fees are checked against the window's
    remaining value BEFORE the deploy — if they don't fit, it aborts with no
    EVM tx sent.
-4. Starts raffle #1 (draw = next Sun/Tue/Thu 20:00 UTC).
+4. Starts raffle #1 (draw = next day 20:00 UTC).
 
 Outputs:
 

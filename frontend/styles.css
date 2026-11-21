@@ -1,14 +1,18 @@
 :root {
-  --bg: #0a0812;
-  --panel: #14101f;
-  --panel-2: #1b1530;
+  /* Cosmic theme shared with Tip Jar + Quantum Sentinel (QoreChain family):
+     deep-space purple bg, violet / fuchsia / cyan orbs, gold kept for the
+     QOR + Vegas identity. */
+  --bg: #150a33;
+  --panel: #1e0f45;
+  --panel-2: #2a1a5e;
   --gold: #f5c542;
   --gold-dim: #c9a227;
-  --purple: #8b5cf6;
-  --pink: #ec4899;
+  --purple: #7c3aed;
+  --pink: #d946ef;
+  --cyan: #22d3ee;
   --text: #f3f1f8;
-  --muted: #9a93ad;
-  --line: #2c2444;
+  --muted: #c4b5fd;
+  --line: #3b2a6d;
   --green: #34d399;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,10 +22,50 @@ body {
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   min-height: 100vh;
 }
+/* Cosmic background (Tip Jar / Sentinel): fixed gradient + twinkling stars
+   + floating orbs behind the content. pointer-events:none so it never
+   blocks clicks; content sits above it (main/footer z-index 1). */
+.qj-bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(1200px 800px at 80% -10%, #4c1d95 0%, transparent 60%),
+    radial-gradient(1000px 700px at 0% 20%, #701a75 0%, transparent 55%),
+    radial-gradient(900px 900px at 50% 110%, #1e3a8a 0%, transparent 60%),
+    linear-gradient(180deg, #150a33 0%, #1e0f45 50%, #12081f 100%);
+}
+.qj-orb {
+  position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55;
+  animation: qj-float 14s ease-in-out infinite alternate;
+}
+.qj-orb-1 { width: 420px; height: 420px; left: -80px; top: 8%; background: #7c3aed; }
+.qj-orb-2 { width: 360px; height: 360px; right: -60px; top: 32%; background: #d946ef; animation-delay: -4s; animation-duration: 18s; }
+.qj-orb-3 { width: 300px; height: 300px; left: 38%; bottom: -60px; background: #22d3ee; opacity: .35; animation-delay: -8s; animation-duration: 16s; }
+.qj-orb-4 { width: 220px; height: 220px; right: 22%; top: 4%; background: #f59e0b; opacity: .3; animation-delay: -2s; }
+.qj-stars {
+  position: absolute; inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20px 30px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 130px 90px, #e9d5ff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 220px 160px, #fff 50%, transparent 51%),
+    radial-gradient(1px 1px at 320px 60px, #a5f3fc 50%, transparent 51%),
+    radial-gradient(1px 1px at 420px 200px, #fff 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 520px 40px, #fde68a 50%, transparent 51%);
+  background-size: 560px 260px; opacity: .7;
+  animation: qj-twinkle 4s ease-in-out infinite alternate;
+}
+@keyframes qj-float {
+  from { transform: translateY(-16px) scale(1); }
+  to { transform: translateY(18px) scale(1.08); }
+}
+@keyframes qj-twinkle {
+  from { opacity: .35; }
+  to { opacity: .85; }
+}
+main, footer { position: relative; z-index: 1; }
 .topbar {
   display: flex; align-items: center; gap: 24px;
   padding: 14px 28px; border-bottom: 1px solid var(--line);
-  position: sticky; top: 0; background: rgba(10, 8, 18, .95); z-index: 10;
+  position: sticky; top: 0; background: rgba(21, 10, 51, .95); z-index: 10;
 }
 .brand { font-weight: 900; letter-spacing: 2px; font-size: 20px; }
 .brand-mark { color: var(--gold); }
@@ -31,6 +75,11 @@ nav a { color: var(--muted); text-decoration: none; font-size: 13px; letter-spac
 nav a.nav-active { color: var(--gold); border-bottom: 2px solid var(--gold); padding-bottom: 2px; }
 #connectBtn { margin-left: auto; }
 main { max-width: 1080px; margin: 0 auto; padding: 28px 20px 40px; }
+/* Hero cover — same pattern as Tip Jar (full-width cover image on top) */
+.hero-cover {
+  width: 100%; border-radius: 16px; display: block;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, .35); margin-bottom: 24px;
+}
 .hero { display: grid; grid-template-columns: 1.2fr .8fr; gap: 24px; align-items: start; }
 .eyebrow { color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 10px; }
 h1 { font-size: 64px; line-height: 1; font-weight: 900; }
@@ -48,7 +97,7 @@ h1 .pot-word { color: var(--muted); font-size: 26px; font-weight: 400; }
 .card-head { display: flex; justify-content: space-between; color: var(--muted); letter-spacing: 2px; font-size: 12px; margin-bottom: 14px; }
 .buy-card { margin-top: 0; }
 .ticket-box {
-  background: linear-gradient(135deg, var(--gold), #e8a020);
+  background: linear-gradient(135deg, rgba(245, 197, 66, .92), rgba(232, 160, 32, .92)), url("cover.png") center/cover;
   color: #1a1200; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px;
 }
 .ticket-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; }
@@ -87,7 +136,7 @@ a.btn-ghost { display: block; text-align: center; text-decoration: none; }
   to { opacity: 1; transform: rotateY(0) translateY(0) scale(1); }
 }
 .reveal-ticket {
-  background: linear-gradient(135deg, var(--gold), #e8a020);
+  background: linear-gradient(135deg, rgba(245, 197, 66, .92), rgba(232, 160, 32, .92)), url("cover.png") center/cover;
   color: #1a1200; border-radius: 10px; padding: 16px; text-align: center;
   border: 2px dashed rgba(26, 18, 0, .35); outline: 2px solid rgba(245, 197, 66, .25); outline-offset: 4px;
 }
@@ -106,7 +155,8 @@ a.btn-ghost { display: block; text-align: center; text-decoration: none; }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .hint { color: var(--muted); font-size: 13px; margin-top: 10px; }
-.draw-actions { display: flex; gap: 10px; margin-top: 12px; }
+.next-draw { margin-top: 12px; font-size: 15px; }
+.next-draw strong { color: var(--cyan); }
 #winnersList p, #winnersList li { margin: 6px 0; }
 .muted { color: var(--muted); }
 #how ol { margin: 0 0 12px 20px; }
@@ -118,6 +168,33 @@ footer a { color: var(--gold); }
   background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--text);
   padding: 12px 20px; border-radius: 8px; display: none; max-width: 90vw; z-index: 50;
 }
+/* ---- connect-wallet picker modal ---- */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(5, 3, 10, .75);
+  display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+}
+/* .hidden is defined earlier in this file; the overlay's display:flex would
+   otherwise win over it (same specificity, later rule) and the modal would
+   always show. This more specific rule keeps it hidden until opened. */
+.modal-overlay.hidden { display: none; }
+.modal-panel {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  padding: 20px; width: min(440px, 94vw); max-height: 85vh; overflow-y: auto;
+}
+.modal-close {
+  background: transparent; border: none; color: var(--muted); font-size: 16px;
+  cursor: pointer; padding: 2px 6px;
+}
+.modal-close:hover { color: var(--text); }
+.wallet-row {
+  display: flex; align-items: center; gap: 12px;
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+}
+.wallet-row .wallet-info { flex: 1; min-width: 0; }
+.wallet-name { font-weight: 800; font-size: 15px; }
+.wallet-status { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.wallet-status.installed { color: var(--green); }
+.wallet-row .btn { padding: 8px 14px; white-space: nowrap; width: auto; margin-top: 0; flex-shrink: 0; }
 @media (max-width: 760px) {
   .hero { grid-template-columns: 1fr; }
   h1 { font-size: 44px; }

@@ -7,7 +7,7 @@ completed in one pass. Category: **Post-Quantum dApp**.
 ## Project
 
 - **Name:** BANZAI VEGAS
-- **Description:** On-chain raffle on the QoreChain testnet. Buy QOR tickets (5 QOR, max 20 per round), win the pot — 1st 30%, 2nd 18%, 3rd 12% + lucky lots. Tickets and payouts all in native QOR (get QOR from the QoreChain faucet, 100 QOR/day). Draws Sun/Tue/Thu 20:00 UTC. Post-quantum operator: ML-DSA-87 key registered on chain, hybrid-signed (secp256k1 + ML-DSA-87) EVM window opens the deploys. Testnet only.
+- **Description:** On-chain raffle on the QoreChain testnet. Buy QOR tickets (5 QOR, max 20 per round), win the pot — 1st 30%, 2nd 18%, 3rd 12% + lucky lots. Tickets and payouts all in native QOR (get QOR from the QoreChain faucet, 100 QOR/day). Draws every day 20:00 UTC, automatic. Post-quantum operator: ML-DSA-87 key registered on chain, hybrid-signed (secp256k1 + ML-DSA-87) EVM window opens the deploys. Testnet only.
 - **Category:** Post-Quantum dApp
 - **Public GitHub repository:** https://github.com/agusher21/banzai-vegas-qorechain (MIT)
 - **README:** in the repo (how it works, post-quantum operator, run instructions, kit).

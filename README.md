@@ -1,6 +1,6 @@
 # BANZAI VEGAS — on-chain raffle on QoreChain testnet
 
-**Post-quantum dApp for the QoreChain Developer Fest 'Build Before Q-Day'.** Buy raffle tickets with native QOR on the QoreChain testnet (qorechain-diana, EVM chain 9800), win the pot. Draws every Sunday, Tuesday and Thursday at 20:00 UTC. Testnet only — no real money.
+**Post-quantum dApp for the QoreChain Developer Fest 'Build Before Q-Day'.** Buy raffle tickets with native QOR on the QoreChain testnet (qorechain-diana, EVM chain 9800), win the pot. Draws every day at 20:00 UTC, automatic. Testnet only — no real money.
 
 > This is the QoreChain port of BANZAI VEGAS. The earlier Base Sepolia version (repo `agusher21/banzai-vegas`) was abandoned by the owner's word — this repo is the one that counts.
 >
@@ -10,8 +10,10 @@
 
 1. **Get QOR** from the [QoreChain faucet](https://dashboard.qorechain.io/faucet) (100 QOR per claim, 1×/24h per address) — QOR pays for gas AND for tickets.
 2. **Buy tickets** — 5 QOR each, up to 20 per raffle. Sales close at draw time. After you buy, your ticket card flips in with your draw numbers.
-3. **Draw** — after sales close, anyone can start the draw. Winners are picked from a future blockhash — public and verifiable on-chain. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.
+3. **Draw** — every day at 20:00 UTC, automatic: no button, no manual trigger. Winners are picked from a future blockhash — public and verifiable on-chain. 1st gets 30%, 2nd 18%, 3rd 12%, then up to 29 lucky lots of 100 QOR plus one lot of the remainder.
 4. **Claim** your prize from "My wins" — it pays out in QOR. Prizes never expire.
+
+The frontend uses the **cosmic theme shared with Tip Jar + Quantum Sentinel** (deep-space purple, violet/fuchsia/cyan orbs, twinkling stars) with the gold QOR identity kept for the raffle. "Connect wallet" opens a picker: MetaMask, WalletConnect, Coinbase Wallet, Brave Wallet, OKX Wallet — injected wallets connect directly; WalletConnect needs a projectId pasted in `frontend/config.js` (`WALLETCONNECT_PROJECT_ID`).
 
 ## Post-quantum, for real
 

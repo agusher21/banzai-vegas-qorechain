@@ -1,15 +1,18 @@
 // BANZAI VEGAS frontend — reads work without a wallet (public QoreChain testnet (qorechain-diana, EVM 9800)
-// RPC); buying / claiming / drawing need MetaMask on QoreChain testnet (9800).
-// QOR-native: tickets cost 5 QOR each, paid as native value with the buy
-// call; prizes pay out in QOR. No token, no approval step — get QOR from
-// the QoreChain faucet (100 QOR/day).
+// RPC); buying / claiming / drawing need a wallet on QoreChain testnet (9800) —
+// pick one from the "Connect wallet" picker (MetaMask, WalletConnect,
+// Coinbase, Brave, OKX). QOR-native: tickets cost 5 QOR each, paid as
+// native value with the buy call; prizes pay out in QOR. No token, no
+// approval step — get QOR from the QoreChain faucet (100 QOR/day).
 const $ = (id) => document.getElementById(id);
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 let readProvider = null;
 let signer = null;
 let account = null;
-let raffle = null;
+let walletProvider = null; // the connected EIP-1193 provider (injected wallet or WalletConnect)
+let walletLabel = "";
+let raffle = null; // read-only contract on the public RPC — writes connect the signer per call, never reassign this
 let raffleId = 0;
 let drawTime = 0;
 let raffleState = 0; // 0 OPEN, 1 DRAWING, 2 FINALIZED
@@ -64,6 +67,7 @@ async function refresh() {
     $("potAmount").textContent = "—";
     $("drawState").textContent = "NOT DEPLOYED YET";
     $("drawInfo").textContent = "The QOR-native raffle is not deployed on QoreChain yet — the BNZ version was retired 21 Nov 2026 and the QOR redeploy is pending. See DEPLOY.md in the repo.";
+    $("nextDrawLabel").textContent = "—";
     $("contractLinks").textContent = "QOR raffle not deployed yet — see DEPLOY.md";
     return;
   }
@@ -79,6 +83,7 @@ async function refresh() {
     $("raffleIdLabel").textContent = "#" + raffleId;
     $("drawDateLabel").textContent = drawDateLabel(drawTime);
     $("raffleWeekLabel").textContent = "DRAW " + drawDateLabel(drawTime).toUpperCase();
+    $("nextDrawLabel").textContent = drawDateLabel(drawTime);
     $("potAmount").textContent = fmtQOR(r.pot);
     $("ticketsSold").textContent = Number(r.totalTickets).toLocaleString();
     $("playerCount").textContent = Number(r.playerCount).toLocaleString();
@@ -90,16 +95,10 @@ async function refresh() {
     const now = Date.now();
     if (raffleState === 0) {
       $("drawState").textContent = now >= drawTime * 1000 ? "SALES CLOSED — DRAW PENDING" : "OPEN";
-      $("drawBtn").disabled = now < drawTime * 1000;
-      $("finalizeBtn").disabled = true;
     } else if (raffleState === 1) {
       $("drawState").textContent = "DRAWING — SEED BLOCK " + Number(r.seedBlock);
-      $("drawBtn").disabled = true;
-      $("finalizeBtn").disabled = false;
     } else {
       $("drawState").textContent = "FINALIZED";
-      $("drawBtn").disabled = true;
-      $("finalizeBtn").disabled = true;
     }
 
     // Winners of the latest finalized round (this one if finalized, else the previous).
@@ -176,34 +175,173 @@ function maybePreviewTickets() {
 }
 
 async function ensureWallet() {
-  if (!window.ethereum) { toast("MetaMask not found — install it to play."); return false; }
-  if (!account) { toast("Connect your wallet first."); return false; }
-  const chainId = await window.ethereum.request({ method: "eth_chainId" });
+  if (!walletProvider || !account) { toast("Connect your wallet first."); return false; }
+  const chainId = await walletProvider.request({ method: "eth_chainId" });
   if (parseInt(chainId, 16) !== CONFIG.chainId) {
     try {
-      await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2648" }] });
+      await walletProvider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x2648" }] });
     } catch (e) {
       if (e.code === 4902) {
-        await window.ethereum.request({
+        await walletProvider.request({
           method: "wallet_addEthereumChain",
           params: [{ chainId: "0x2648", chainName: CONFIG.chainName, nativeCurrency: { name: "QOR", symbol: "QOR", decimals: 18 }, rpcUrls: [CONFIG.rpcUrl], blockExplorerUrls: [CONFIG.blockExplorer] }],
         });
-      } else { toast("Please switch MetaMask to QoreChain Testnet."); return false; }
+      } else { toast("Please switch your wallet to QoreChain Testnet."); return false; }
     }
   }
   return true;
 }
 
-async function connectWallet() {
-  if (!window.ethereum) { toast("MetaMask not found — install it to play."); return; }
-  const provider = new ethers.BrowserProvider(window.ethereum);
-  const accounts = await provider.send("eth_requestAccounts", []);
-  account = accounts[0];
-  signer = await provider.getSigner();
-  $("connectBtn").textContent = account.slice(0, 6) + "…" + account.slice(-4);
-  raffle = raffle.connect(signer);
-  await refreshAccount();
-  toast("Connected: " + account);
+// ---- connect-wallet picker --------------------------------------------
+// Lists MetaMask, WalletConnect, Coinbase, Brave and OKX. Injected wallets
+// are detected via their provider flags (EIP-5749: window.ethereum.providers
+// when several wallets inject at once); a wallet that is not installed gets
+// an install link instead of a connect button. WalletConnect is loaded
+// lazily from the official SDK (esm.sh build of @walletconnect/
+// ethereum-provider) and needs CONFIG.WALLETCONNECT_PROJECT_ID.
+const WALLETS = [
+  { id: "metamask", name: "MetaMask", installUrl: "https://metamask.io/download/", flag: (p) => !!(p && p.isMetaMask) },
+  { id: "coinbase", name: "Coinbase Wallet", installUrl: "https://www.coinbase.com/wallet", flag: (p) => !!(p && (p.isCoinbaseWallet || p.isCoinbaseWalletExtension)) },
+  { id: "brave", name: "Brave Wallet", installUrl: "https://brave.com/download/", flag: (p) => !!(p && p.isBraveWallet) },
+  { id: "okx", name: "OKX Wallet", installUrl: "https://www.okx.com/web3", flag: (p) => !!(p && (p.isOKX || p.isOkxWallet)) },
+];
+
+function injectedProviders() {
+  const list = [];
+  const eth = window.ethereum;
+  if (eth) {
+    if (Array.isArray(eth.providers)) list.push(...eth.providers);
+    else list.push(eth);
+  }
+  // Some wallets expose a second global besides window.ethereum.
+  if (window.okxwallet && !list.includes(window.okxwallet)) list.push(window.okxwallet);
+  if (window.coinbaseWalletExtension && !list.includes(window.coinbaseWalletExtension)) list.push(window.coinbaseWalletExtension);
+  return list;
+}
+
+function detectWallets() {
+  const providers = injectedProviders();
+  const rows = WALLETS.map((w) => {
+    const provider = providers.find((p) => w.flag(p)) || null;
+    return { ...w, provider, installed: !!provider };
+  });
+  rows.push({
+    id: "walletconnect", name: "WalletConnect", installUrl: "",
+    provider: null, installed: !!(CONFIG.WALLETCONNECT_PROJECT_ID || "").trim(),
+    needsProjectId: !(CONFIG.WALLETCONNECT_PROJECT_ID || "").trim(),
+  });
+  return rows;
+}
+
+function renderWalletList() {
+  const list = $("walletList");
+  list.innerHTML = "";
+  for (const w of detectWallets()) {
+    const row = document.createElement("div");
+    row.className = "wallet-row";
+    const status = w.id === "walletconnect"
+      ? (w.needsProjectId ? "Needs a projectId — paste yours in config.js" : "Scan with your mobile wallet")
+      : (w.installed ? "Installed — click Connect" : "Not installed");
+    const statusClass = w.id === "walletconnect"
+      ? (w.needsProjectId ? "" : "installed")
+      : (w.installed ? "installed" : "");
+    const action = w.id === "walletconnect"
+      ? (w.needsProjectId
+        ? `<button class="btn btn-ghost" data-wallet="walletconnect-setup">Set up</button>`
+        : `<button class="btn btn-gold" data-wallet="walletconnect">Connect</button>`)
+      : (w.installed
+        ? `<button class="btn btn-gold" data-wallet="${w.id}">Connect</button>`
+        : `<a class="btn btn-ghost" href="${w.installUrl}" target="_blank" rel="noopener">Install</a>`);
+    row.innerHTML = `<div class="wallet-info"><div class="wallet-name">${w.name}</div><div class="wallet-status ${statusClass}">${status}</div></div>${action}`;
+    list.appendChild(row);
+  }
+}
+
+function openWalletModal() {
+  renderWalletList();
+  $("walletModal").classList.remove("hidden");
+}
+
+function closeWalletModal() {
+  $("walletModal").classList.add("hidden");
+}
+
+async function connectInjected(provider, label) {
+  try {
+    const ethersProvider = new ethers.BrowserProvider(provider);
+    const accounts = await ethersProvider.send("eth_requestAccounts", []);
+    account = accounts[0];
+    signer = await ethersProvider.getSigner();
+    walletProvider = provider;
+    walletLabel = label;
+    $("connectBtn").textContent = account.slice(0, 6) + "…" + account.slice(-4);
+    closeWalletModal();
+    await refreshAccount();
+    toast("Connected with " + label + ": " + account);
+  } catch (e) {
+    console.error(e);
+    toast("Connect failed: " + (e.reason || e.message || e));
+  }
+}
+
+async function connectWalletConnect() {
+  const pid = (CONFIG.WALLETCONNECT_PROJECT_ID || "").trim();
+  if (!pid) {
+    toast("WalletConnect needs a projectId — paste yours in config.js (WALLETCONNECT_PROJECT_ID).");
+    return;
+  }
+  try {
+    toast("Loading WalletConnect…");
+    const { EthereumProvider } = await import("https://esm.sh/@walletconnect/ethereum-provider@2.26.0");
+    const wc = await EthereumProvider.init({
+      projectId: pid,
+      chains: [CONFIG.chainId],
+      rpcMap: { [CONFIG.chainId]: CONFIG.rpcUrl },
+      showQrModal: true,
+      metadata: {
+        name: "BANZAI VEGAS",
+        description: "On-chain raffle on QoreChain testnet — 5 QOR a ticket.",
+        url: location.origin,
+        icons: [location.origin + "/cover.png"],
+      },
+    });
+    const accounts = await wc.enable();
+    if (!accounts.length) { toast("WalletConnect: no account selected."); return; }
+    const ethersProvider = new ethers.BrowserProvider(wc);
+    account = accounts[0];
+    signer = await ethersProvider.getSigner();
+    walletProvider = wc;
+    walletLabel = "WalletConnect";
+    $("connectBtn").textContent = account.slice(0, 6) + "…" + account.slice(-4);
+    closeWalletModal();
+    await refreshAccount();
+    toast("Connected with WalletConnect: " + account);
+  } catch (e) {
+    console.error(e);
+    toast("WalletConnect failed: " + (e.message || e));
+  }
+}
+
+$("walletList").addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-wallet]");
+  if (!btn) return;
+  const id = btn.dataset.wallet;
+  if (id === "walletconnect") { connectWalletConnect(); return; }
+  if (id === "walletconnect-setup") {
+    toast("WalletConnect needs a projectId — paste yours in config.js (WALLETCONNECT_PROJECT_ID).");
+    return;
+  }
+  const row = detectWallets().find((w) => w.id === id);
+  if (row && row.provider) connectInjected(row.provider, row.name);
+});
+$("walletModalClose").addEventListener("click", closeWalletModal);
+$("walletModal").addEventListener("click", (e) => { if (e.target === $("walletModal")) closeWalletModal(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeWalletModal(); });
+
+// Preview mode for screenshots: ?wallet=1 opens the picker on load.
+function maybePreviewWallet() {
+  const params = new URLSearchParams(location.search);
+  if (params.get("wallet") === "1") openWalletModal();
 }
 
 async function buy() {
@@ -213,7 +351,7 @@ async function buy() {
   const cost = ethers.parseEther(String(qty * CONFIG.ticketPriceQOR));
   try {
     toast(`Buying ${qty} ticket(s) for ${qty * CONFIG.ticketPriceQOR} QOR…`);
-    const tx = await raffle.buyTickets(qty, { value: cost });
+    const tx = await raffle.connect(signer).buyTickets(qty, { value: cost });
     await tx.wait();
     toast(`Bought ${qty} ticket(s). Good luck!`);
     await refresh();
@@ -225,32 +363,18 @@ async function buy() {
 async function claim() {
   if (!(await ensureWallet())) return;
   try {
-    const tx = await raffle.claim(raffleId);
+    const tx = await raffle.connect(signer).claim(raffleId);
     await tx.wait();
     toast("Prizes claimed in QOR. Congratulations!");
     await refresh();
   } catch (e) { console.error(e); toast("Claim failed: " + (e.reason || e.message || e)); }
 }
 
-async function draw() {
-  if (!(await ensureWallet())) return;
-  try { const tx = await raffle.draw(); await tx.wait(); toast("Draw started — seed block set."); await refresh(); }
-  catch (e) { console.error(e); toast("Draw failed: " + (e.reason || e.message || e)); }
-}
-
-async function finalize() {
-  if (!(await ensureWallet())) return;
-  try { const tx = await raffle.finalize(); await tx.wait(); toast("Winners picked — check the list below."); await refresh(); }
-  catch (e) { console.error(e); toast("Finalize failed: " + (e.reason || e.message || e)); }
-}
-
 document.querySelectorAll(".qty").forEach((b) =>
   b.addEventListener("click", () => { pickedQty = b.dataset.qty === "max" ? "max" : Number(b.dataset.qty); updatePicker(); }));
 $("buyBtn").addEventListener("click", buy);
 $("claimBtn").addEventListener("click", claim);
-$("drawBtn").addEventListener("click", draw);
-$("finalizeBtn").addEventListener("click", finalize);
-$("connectBtn").addEventListener("click", connectWallet);
+$("connectBtn").addEventListener("click", openWalletModal);
 
 (async function init() {
   await loadAddresses();
@@ -262,6 +386,7 @@ $("connectBtn").addEventListener("click", connectWallet);
   }
   await refresh();
   maybePreviewTickets();
+  maybePreviewWallet();
   setInterval(async () => {
     if (drawTime) $("countdown").textContent = fmtCountdown(drawTime * 1000 - Date.now());
   }, 1000);
